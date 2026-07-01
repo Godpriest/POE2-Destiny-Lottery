@@ -36,7 +36,7 @@
       setupScreenAria: '抽獎設定',
       lotteryScreenAria: '抽獎動畫',
       filterPoolAria: '角色過濾池',
-      loadingMessage: '正在前往「瓦爾克拉斯」（Wraeclast）...',
+      loadingMessage: '正在前往瓦爾克拉斯...',
       skipLoading: '跳過讀取，直接進入命運輪迴（可能造成畫面卡頓）',
       characters: {
         druid: '德魯伊',
