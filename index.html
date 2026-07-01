@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POE2 Destiny Lottery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caesar+Dressing&family=Cinzel:wght@400;600;700&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 動態影片背景（最底層） -->
+  <video
+    class="bg-video"
+    autoplay
+    loop
+    muted
+    playsinline
+    aria-hidden="true"
+  >
+    <source src="webm/background.webm" type="video/webm">
+  </video>
+
+  <!-- 暗色遮罩，提升文字可讀性 -->
+  <div class="bg-overlay" aria-hidden="true"></div>
+
+  <!-- 背景音樂（主畫面） -->
+  <audio id="bgm" loop preload="auto">
+    <source src="bgm/The Veil of Forgotten Dreams.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- 命運揭曉終點 BGM -->
+  <audio id="end-bgm" preload="auto">
+    <source src="bgm/Iron Gate Impact.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- 全螢幕轉場影片（播一次，最高層） -->
+  <video
+    id="reveal-transition-video"
+    class="vfx-transition"
+    muted
+    playsinline
+    preload="auto"
+    aria-hidden="true"
+  >
+    <source src="webm/Light_1.webm" type="video/webm">
+  </video>
+
+  <!-- 右上角：語系 + 全域音量控制 -->
+  <div class="top-controls" id="top-controls">
+    <div class="lang-switcher">
+      <label for="lang-select" class="lang-switcher__label" data-i18n="langSelect">選擇語系</label>
+      <select id="lang-select" class="lang-switcher__select" aria-label="選擇語系">
+        <option value="zh-TW">繁中</option>
+        <option value="en">EN</option>
+      </select>
+    </div>
+    <div class="volume-control" id="volume-control">
+      <button
+        id="volume-mute-btn"
+        class="volume-mute-btn"
+        type="button"
+        aria-label="靜音"
+        title="靜音"
+      >
+      </button>
+      <label for="volume-slider" class="volume-control__label" data-i18n="volumeSlider">音量</label>
+      <input
+        type="range"
+        id="volume-slider"
+        class="volume-slider"
+        min="0"
+        max="100"
+        value="50"
+        aria-label="音量"
+      >
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       A 區塊：設定畫面
+       ═══════════════════════════════════════ -->
+  <section id="setup-screen" class="screen screen--active" data-i18n-aria="setupScreenAria" aria-label="抽獎設定">
+
+    <header class="setup-header">
+      <h1 class="main-title" data-i18n="mainTitle">POE2 Destiny Lottery</h1>
+      <p class="subtitle" data-i18n="subtitle">命運之輪，靜候汝名</p>
+    </header>
+
+    <main class="setup-body">
+
+      <div class="setup-form">
+
+        <div class="form-group">
+          <label class="form-label" for="exile-id" data-i18n="exileLabel">流亡者 ID</label>
+          <input
+            type="text"
+            id="exile-id"
+            class="form-input"
+            data-i18n-placeholder="exilePlaceholder"
+            placeholder="輸入你的流亡者 ID…"
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="draw-btn-wrap">
+          <button id="draw-btn" class="btn-draw" type="button" data-i18n="drawButton">
+            揭露命運
+          </button>
+          <p id="draw-btn-hint" class="draw-btn-hint" data-i18n="poolEmptyHint" hidden>
+            獎池內至少要有一隻角色
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="webhook-url" data-i18n="webhookLabel">Webhook 網址</label>
+          <div class="webhook-input-row">
+            <input
+              type="url"
+              id="webhook-url"
+              class="form-input"
+              data-i18n-placeholder="webhookPlaceholder"
+              placeholder="https://discord.com/api/webhooks/…"
+              autocomplete="off"
+            >
+            <button
+              id="copy-share-btn"
+              class="btn-copy-share"
+              type="button"
+              data-i18n="copyShareLink"
+            >
+              複製專屬連結
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="filter-pool">
+        <h2 class="filter-pool__title" data-i18n="filterPoolTitle">角色過濾池</h2>
+        <div class="filter-pool__content" id="filter-pool-content">
+          <div
+            class="character-pool"
+            id="character-pool"
+            role="group"
+            data-i18n-aria="filterPoolAria"
+            aria-label="角色過濾池"
+          >
+            <!-- 由 JS 動態生成，每排 4 格自動換行 -->
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       B 區塊：抽獎動畫畫面
+       ═══════════════════════════════════════ -->
+  <section id="lottery-screen" class="screen" data-i18n-aria="lotteryScreenAria" aria-label="抽獎動畫" aria-hidden="true">
+
+    <div class="lottery-container">
+      <h2 class="lottery-title" data-i18n="lotteryTitle">命運揭曉</h2>
+
+      <!-- CS:GO 風格橫向滾動抽獎視窗（待實作動畫） -->
+      <div class="lottery-window">
+        <div class="lottery-window__track" id="lottery-track">
+          <!-- 抽獎項目將動態插入此處 -->
+        </div>
+        <div class="lottery-window__pointer" aria-hidden="true"></div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       全螢幕命運揭曉層
+       ═══════════════════════════════════════ -->
+  <div id="winner-overlay" class="winner-overlay" aria-hidden="true">
+
+    <video
+      id="portrait-bg-video"
+      class="bg-glow-video"
+      loop
+      muted
+      playsinline
+      preload="auto"
+      aria-hidden="true"
+    >
+      <source src="webm/light_2.mp4" type="video/mp4">
+    </video>
+
+    <div class="winner-overlay__content">
+
+      <p class="winner-overlay__epic" data-i18n="wheelStopped">
+        命運的輪迴已停止...
+      </p>
+
+      <h2 class="winner-overlay__chosen">
+        <span data-i18n="destinyChosen">命運選擇了：</span><span id="winner-name" class="winner-overlay__name"></span>
+      </h2>
+
+      <div class="winner-overlay__portrait-wrap">
+        <img id="winner-portrait" class="winner-overlay__portrait" src="" alt="">
+      </div>
+
+      <p class="winner-overlay__exile">
+        <span class="winner-overlay__exile-label" data-i18n="exileIdLabel">流亡者 ID：</span>
+        <span id="winner-exile-id" class="winner-overlay__exile-value"></span>
+      </p>
+
+      <button id="winner-return-btn" class="btn-return" type="button" data-i18n="returnBtn">
+        再次接受命運的召喚
+      </button>
+
+    </div>
+
+  </div>
+
+  <footer id="suno-credit" class="suno-credit" aria-label="AI Music attribution">
+    AI Music generated by Suno
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
