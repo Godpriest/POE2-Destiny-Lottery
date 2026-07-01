@@ -1113,13 +1113,14 @@
   function revealWinnerContent(winnerId, exileId, charName) {
     if (winnerContentRevealed) return;
     winnerContentRevealed = true;
+
+    winnerOverlay.classList.add('winner-overlay--visible');
+    winnerOverlay.setAttribute('aria-hidden', 'false');
+    winnerPortraitEl.classList.add('winner-overlay__portrait--revealed');
+
     if (portraitBgVideo) {
       playPortraitBgVideo();
     }
-
-    winnerPortraitEl.classList.add('winner-overlay__portrait--revealed');
-    winnerOverlay.classList.add('winner-overlay--visible');
-    winnerOverlay.setAttribute('aria-hidden', 'false');
 
     const webhookUrl = webhookInput.value.trim();
     if (webhookUrl) {
@@ -1498,14 +1499,31 @@
   }
 
   function playPortraitBgVideo() {
-    if (!portraitBgVideo) return;
+    if (!portraitBgVideo || !winnerOverlay) return;
 
     portraitBgVideo.loop = true;
+    portraitBgVideo.muted = true;
+    portraitBgVideo.playsInline = true;
     portraitBgVideo.currentTime = 0;
     portraitBgVideo.classList.add('bg-glow-video--active');
 
+    const attemptPlayback = () => {
+      const playPromise = portraitBgVideo.play();
+      if (playPromise === undefined) return;
+
+      playPromise.catch((err) => {
+        console.warn('結算背景影片播放失敗，嘗試重新載入：', err);
+        portraitBgVideo.load();
+        portraitBgVideo.play().catch((retryErr) => {
+          console.warn('結算背景影片重試播放失敗：', retryErr);
+        });
+      });
+    };
+
     const startPlayback = () => {
-      portraitBgVideo.play().catch(() => {});
+      requestAnimationFrame(() => {
+        attemptPlayback();
+      });
     };
 
     if (portraitBgVideo.readyState >= 3) {
@@ -1514,6 +1532,10 @@
     }
 
     portraitBgVideo.addEventListener('canplaythrough', startPlayback, { once: true });
+    portraitBgVideo.addEventListener('error', () => {
+      console.warn('結算背景影片載入錯誤：', portraitBgVideo.error);
+    }, { once: true });
+    portraitBgVideo.load();
   }
 
   initAssetPreloader();

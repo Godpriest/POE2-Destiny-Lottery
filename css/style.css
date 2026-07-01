@@ -1223,6 +1223,11 @@ body:has(.winner-overlay--visible) .suno-credit {
   visibility: hidden;
 }
 
+.winner-overlay--visible .bg-glow-video.bg-glow-video--active {
+  opacity: 1;
+  visibility: visible;
+}
+
 .winner-overlay__portrait-wrap {
   position: relative;
   display: flex;
