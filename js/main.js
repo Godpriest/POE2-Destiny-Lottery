@@ -94,6 +94,18 @@
   let currentLang = 'zh-TW';
   let lastWinnerId = null;
 
+  /* ── 太鼓音效（Web Audio API 全域狀態，須置頂避免 TDZ）── */
+
+  const DRUM_SRC = 'bgm/drum.wav';
+  const DRUM_POOL_SIZE = 16;
+
+  let drumAudioContext = null;
+  let drumGainNode = null;
+  let drumAudioBuffer = null;
+  let useDrumFallback = false;
+  const drumPool = [];
+  let drumPoolCursor = 0;
+
   function normalizeLanguageCode(lang) {
     if (!lang) return '';
     return String(lang).toLowerCase().includes('zh') ? 'zh-TW' : 'en';
@@ -305,11 +317,17 @@
     return volumeSliderMuted ? 0 : globalVolume;
   }
 
+  function updateDrumGain() {
+    if (!drumGainNode) return;
+    drumGainNode.gain.value = getEffectiveVolume();
+  }
+
   function applyGlobalVolume() {
     const vol = getEffectiveVolume();
     document.querySelectorAll('audio, video').forEach((el) => {
       el.volume = vol;
     });
+    updateDrumGain();
   }
 
   function saveVolumePreferences() {
@@ -398,6 +416,7 @@
   }
 
   function unlockAudioOnInteraction() {
+    resumeDrumAudioContext();
     if (isWinnerScreenActive()) {
       if (endBgm.paused) {
         applyGlobalVolume();
@@ -680,32 +699,161 @@
   let winnerContentRevealed = false;
 
   const SCROLL_EASING = 'cubic-bezier(0.05, 0.9, 0.1, 1)';
-  const DRUM_SRC = 'bgm/drum.wav';
-  const DRUM_POOL_SIZE = 16;
 
-  /* ── 太鼓音效（支援重疊播放的 Audio Pool）──────────────── */
+  /* ── 太鼓音效（Web Audio API + HTMLAudio 降級）──────────── */
 
-  const drumPool = [];
+  function getDrumAudioContext() {
+    if (drumAudioContext) return drumAudioContext;
 
-  function initDrumPool() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+
+      drumAudioContext = new AudioContextClass();
+      drumGainNode = drumAudioContext.createGain();
+      drumGainNode.connect(drumAudioContext.destination);
+      updateDrumGain();
+      return drumAudioContext;
+    } catch (err) {
+      console.warn('AudioContext 建立失敗：', err);
+      return null;
+    }
+  }
+
+  function resumeDrumAudioContext() {
+    if (useDrumFallback) return;
+
+    try {
+      const ctx = getDrumAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('AudioContext 恢復失敗：', err);
+    }
+  }
+
+  function initDrumFallbackPool() {
+    drumPool.length = 0;
     for (let i = 0; i < DRUM_POOL_SIZE; i++) {
       const audio = new Audio(DRUM_SRC);
       audio.preload = 'auto';
       drumPool.push(audio);
     }
+    useDrumFallback = true;
+    drumAudioBuffer = null;
   }
 
-  let drumPoolCursor = 0;
+  function preloadDrumFallback() {
+    return new Promise((resolve) => {
+      try {
+        initDrumFallbackPool();
+        if (drumPool.length === 0) {
+          resolve();
+          return;
+        }
 
-  function playDrumSound() {
-    if (drumPool.length === 0) return;
+        let settled = false;
+        let loadedCount = 0;
+
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+
+        const markLoaded = () => {
+          loadedCount += 1;
+          if (loadedCount >= drumPool.length) {
+            finish();
+          }
+        };
+
+        drumPool.forEach((audio) => {
+          audio.addEventListener('canplaythrough', markLoaded, { once: true });
+          audio.addEventListener('error', markLoaded, { once: true });
+          audio.src = DRUM_SRC;
+          audio.load();
+        });
+
+        setTimeout(finish, 3000);
+      } catch (err) {
+        console.warn('鼓聲 HTMLAudio 降級預載失敗：', err);
+        resolve();
+      }
+    });
+  }
+
+  async function preloadDrumBuffer() {
+    try {
+      const response = await fetch(DRUM_SRC);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const ctx = getDrumAudioContext();
+      if (!ctx) {
+        throw new Error('AudioContext unavailable');
+      }
+
+      drumAudioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      useDrumFallback = false;
+    } catch (err) {
+      console.warn('鼓聲 Web Audio 預解碼失敗，降級為 HTMLAudio：', err);
+      await preloadDrumFallback();
+    }
+  }
+
+  function playDrumSoundWithFallback() {
     const audio = drumPool[drumPoolCursor];
-    drumPoolCursor = (drumPoolCursor + 1) % DRUM_POOL_SIZE;
+    drumPoolCursor = (drumPoolCursor + 1) % drumPool.length;
     audio.currentTime = 0;
     audio.volume = getEffectiveVolume();
     const playPromise = audio.play();
     if (playPromise !== undefined) {
-      playPromise.catch(() => { /* 瀏覽器阻擋時靜默略過 */ });
+      playPromise.catch(() => {});
+    }
+  }
+
+  function playDrumSound() {
+    if (useDrumFallback) {
+      if (drumPool.length === 0) return;
+      playDrumSoundWithFallback();
+      return;
+    }
+
+    if (!drumAudioBuffer) {
+      if (drumPool.length > 0) {
+        playDrumSoundWithFallback();
+      }
+      return;
+    }
+
+    try {
+      const ctx = getDrumAudioContext();
+      if (!ctx || !drumGainNode) {
+        if (drumPool.length > 0) {
+          playDrumSoundWithFallback();
+        }
+        return;
+      }
+
+      resumeDrumAudioContext();
+      updateDrumGain();
+
+      const source = ctx.createBufferSource();
+      source.buffer = drumAudioBuffer;
+      source.connect(drumGainNode);
+      source.start(0);
+    } catch (err) {
+      console.warn('鼓聲 Web Audio 播放失敗，降級為 HTMLAudio：', err);
+      if (drumPool.length === 0) {
+        initDrumFallbackPool();
+      }
+      if (drumPool.length > 0) {
+        playDrumSoundWithFallback();
+      }
     }
   }
 
@@ -760,7 +908,6 @@
     drumMonitorRafId = requestAnimationFrame(monitorFrame);
   }
 
-  initDrumPool();
   applyGlobalVolume();
 
   function pickRandomFromPool() {
@@ -1101,9 +1248,6 @@
     }, SCREEN_TRANSITION_MS);
   }
 
-  drawBtn.addEventListener('click', startLottery);
-  winnerReturnBtn.addEventListener('click', returnToSetup);
-
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
   const PORTRAIT_BG_VIDEO_SRC = 'webm/light_2.webm';
@@ -1146,10 +1290,11 @@
     [
       'bgm/The Veil of Forgotten Dreams.mp3',
       'bgm/Iron Gate Impact.mp3',
-      'bgm/drum.wav',
     ].forEach((src) => {
       assets.push({ type: 'audio', src });
     });
+
+    assets.push({ type: 'drum-buffer', src: DRUM_SRC });
 
     const bgVideoEl = document.querySelector('.bg-video');
     const transitionVideoEl = document.getElementById('reveal-transition-video');
@@ -1199,49 +1344,71 @@
 
   function preloadVideoAsset(src, videoEl) {
     return new Promise((resolve) => {
-      if (videoEl) {
-        let settled = false;
+      try {
+        if (videoEl) {
+          let settled = false;
 
-        const finish = () => {
-          if (settled) return;
-          settled = true;
-          resolve();
-        };
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
 
-        const onCanPlayThrough = () => finish();
+          videoEl.addEventListener('canplaythrough', finish, { once: true });
+          videoEl.addEventListener('error', finish, { once: true });
+          videoEl.preload = 'auto';
+          videoEl.load();
 
-        videoEl.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
-        videoEl.addEventListener('error', finish, { once: true });
-        videoEl.preload = 'auto';
-        videoEl.load();
+          if (videoEl.readyState >= 4) {
+            finish();
+            return;
+          }
 
-        if (videoEl.readyState >= 4) {
-          finish();
+          setTimeout(finish, 8000);
+          return;
         }
-        return;
-      }
 
-      fetch(src)
-        .then((response) => {
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.blob();
-        })
-        .then(() => resolve())
-        .catch(() => resolve());
+        fetch(src)
+          .then((response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.blob();
+          })
+          .then(() => resolve())
+          .catch(() => resolve());
+      } catch (err) {
+        console.warn('影片預載失敗：', src, err);
+        resolve();
+      }
     });
   }
 
   function preloadAsset(asset) {
-    if (asset.type === 'image') {
-      return preloadImageAsset(asset.src);
+    try {
+      if (asset.type === 'image') {
+        return preloadImageAsset(asset.src);
+      }
+      if (asset.type === 'audio') {
+        return preloadAudioAsset(asset.src);
+      }
+      if (asset.type === 'drum-buffer') {
+        return preloadDrumBuffer();
+      }
+      if (asset.type === 'video') {
+        return preloadVideoAsset(asset.src, asset.element);
+      }
+    } catch (err) {
+      console.warn('資源預載啟動失敗：', asset, err);
     }
-    if (asset.type === 'audio') {
-      return preloadAudioAsset(asset.src);
-    }
-    if (asset.type === 'video') {
-      return preloadVideoAsset(asset.src, asset.element);
-    }
+
     return Promise.resolve();
+  }
+
+  function safePreloadAsset(asset) {
+    return Promise.resolve()
+      .then(() => preloadAsset(asset))
+      .catch((err) => {
+        console.warn('資源預載失敗：', asset, err);
+      });
   }
 
   function initAssetPreloader() {
@@ -1251,7 +1418,17 @@
     const skipLoadingBtn = document.getElementById('skip-loading-btn');
     if (!loadingScreen) return;
 
-    const assets = collectPreloadAssets();
+    let assets = [];
+
+    try {
+      assets = collectPreloadAssets();
+    } catch (err) {
+      console.warn('預載資源清單建立失敗：', err);
+      loadingScreen.classList.add('loading-screen--hidden');
+      loadingScreen.setAttribute('aria-busy', 'false');
+      return;
+    }
+
     const totalAssets = assets.length;
     let completedAssets = 0;
     let loadingDismissed = false;
@@ -1300,6 +1477,11 @@
 
     updatePreloadProgress();
 
+    if (totalAssets === 0) {
+      dismissLoadingScreen(true);
+      return;
+    }
+
     if (skipLoadingBtn) {
       setTimeout(() => {
         skipLoadingBtn.classList.add('loading-screen__skip--visible');
@@ -1311,7 +1493,7 @@
     }
 
     assets.forEach((asset) => {
-      preloadAsset(asset).finally(markAssetLoaded);
+      safePreloadAsset(asset).finally(markAssetLoaded);
     });
   }
 
@@ -1332,10 +1514,16 @@
     }
 
     portraitBgVideo.addEventListener('canplaythrough', startPlayback, { once: true });
-    portraitBgVideo.load();
   }
 
   initAssetPreloader();
+
+  if (drawBtn) {
+    drawBtn.addEventListener('click', startLottery);
+  }
+  if (winnerReturnBtn) {
+    winnerReturnBtn.addEventListener('click', returnToSetup);
+  }
 
   /* 匯出供後續模組使用 */
   window.POE2Lottery = {

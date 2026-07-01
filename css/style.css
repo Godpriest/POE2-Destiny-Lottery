@@ -1076,24 +1076,54 @@ body:has(.winner-overlay--visible) .suno-credit {
 .winner-overlay {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: -100;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.6s ease;
-  background: rgba(0, 0, 0, 0.95);
+  background: transparent;
+  transition:
+    opacity 0.6s ease,
+    visibility 0.6s ease,
+    z-index 0s linear 0.6s;
 }
 
 .winner-overlay--visible {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  z-index: 9999;
+  transition:
+    opacity 0.6s ease,
+    visibility 0.6s ease,
+    z-index 0s linear 0s;
+}
+
+.winner-overlay__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.winner-overlay--visible .winner-overlay__scrim {
+  opacity: 1;
+  visibility: visible;
 }
 
 .winner-overlay__content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1103,6 +1133,12 @@ body:has(.winner-overlay--visible) .suno-credit {
   max-width: 900px;
   padding: 2rem 1.5rem;
   text-align: center;
+}
+
+.winner-overlay--visible .winner-overlay__content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .winner-overlay__epic {
@@ -1169,16 +1205,22 @@ body:has(.winner-overlay--visible) .suno-credit {
   width: 100vw;
   height: 100vh;
   object-fit: cover;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
   mix-blend-mode: screen;
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
 }
 
 .bg-glow-video--active {
   opacity: 1;
   visibility: visible;
+}
+
+.winner-overlay:not(.winner-overlay--visible) .bg-glow-video {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .winner-overlay__portrait-wrap {
