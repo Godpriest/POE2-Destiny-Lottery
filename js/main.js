@@ -36,7 +36,8 @@
       setupScreenAria: '抽獎設定',
       lotteryScreenAria: '抽獎動畫',
       filterPoolAria: '角色過濾池',
-      loadingMessage: '正在引導古靈之石的力量...',
+      loadingMessage: '正在前往「瓦爾克拉斯」（Wraeclast）...',
+      skipLoading: '跳過讀取，直接進入命運輪迴（可能造成畫面卡頓）',
       characters: {
         druid: '德魯伊',
         huntress: '女獵人',
@@ -75,7 +76,8 @@
       setupScreenAria: 'Lottery setup',
       lotteryScreenAria: 'Lottery animation',
       filterPoolAria: 'Character filter pool',
-      loadingMessage: 'Channeling the power of ancient gems...',
+      loadingMessage: 'Traveling to Wraeclast...',
+      skipLoading: 'Skip loading and enter the wheel of fate (may cause lag)',
       characters: {
         druid: 'Druid',
         huntress: 'Huntress',
@@ -91,6 +93,15 @@
 
   let currentLang = 'zh-TW';
   let lastWinnerId = null;
+
+  function normalizeLanguageCode(lang) {
+    if (!lang) return '';
+    return String(lang).toLowerCase().includes('zh') ? 'zh-TW' : 'en';
+  }
+
+  function getStorageLanguageCode(lang) {
+    return normalizeLanguageCode(lang) === 'zh-TW' ? 'zh' : 'en';
+  }
 
   function getTranslation(lang, key) {
     const parts = key.split('.');
@@ -149,26 +160,27 @@
   }
 
   function updateLanguage(lang) {
-    if (!translations[lang]) return;
+    const normalizedLang = normalizeLanguageCode(lang);
+    if (!translations[normalizedLang]) return;
 
-    currentLang = lang;
-    document.documentElement.lang = lang;
-    document.title = translations[lang].pageTitle;
+    currentLang = normalizedLang;
+    document.documentElement.lang = normalizedLang;
+    document.title = translations[normalizedLang].pageTitle;
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       if (el.dataset.feedbackActive === 'true') return;
       const key = el.dataset.i18n;
-      el.textContent = getTranslation(lang, key);
+      el.textContent = getTranslation(normalizedLang, key);
     });
 
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
       const key = el.dataset.i18nPlaceholder;
-      el.placeholder = getTranslation(lang, key);
+      el.placeholder = getTranslation(normalizedLang, key);
     });
 
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
       const key = el.dataset.i18nAria;
-      const text = getTranslation(lang, key);
+      const text = getTranslation(normalizedLang, key);
       el.setAttribute('aria-label', text);
       if (el.hasAttribute('title')) {
         el.title = text;
@@ -177,8 +189,8 @@
 
     const langSelect = document.getElementById('lang-select');
     if (langSelect) {
-      langSelect.value = lang;
-      langSelect.setAttribute('aria-label', getTranslation(lang, 'langSelect'));
+      langSelect.value = normalizedLang;
+      langSelect.setAttribute('aria-label', getTranslation(normalizedLang, 'langSelect'));
     }
 
     updateCharacterNames();
@@ -219,6 +231,7 @@
     EXILE_ID: 'poe2_wheel_exileId',
     AUDIO_VOLUME: 'poe2_wheel_audioVolume',
     AUDIO_MUTED: 'poe2_wheel_audioMuted',
+    LANGUAGE: 'playerLanguage',
   };
 
   function readStorageItem(key) {
@@ -250,6 +263,23 @@
 
   function saveExileIdToStorage(exileId) {
     writeStorageItem(STORAGE_KEYS.EXILE_ID, exileId);
+  }
+
+  function getBrowserPreferredLanguage() {
+    const browserLang = navigator.language || '';
+    return browserLang.toLowerCase().includes('zh') ? 'zh-TW' : 'en';
+  }
+
+  function getInitialLanguage() {
+    const storedLang = readStorageItem(STORAGE_KEYS.LANGUAGE);
+    if (storedLang) {
+      return normalizeLanguageCode(storedLang);
+    }
+    return getBrowserPreferredLanguage();
+  }
+
+  function saveLanguagePreference(lang) {
+    writeStorageItem(STORAGE_KEYS.LANGUAGE, getStorageLanguageCode(lang));
   }
 
   /* ── 全域音量管理 ───────────────────────────────────────── */
@@ -400,6 +430,7 @@
 
   langSelect.addEventListener('change', () => {
     updateLanguage(langSelect.value);
+    saveLanguagePreference(langSelect.value);
   });
 
   document.addEventListener('click', unlockAudioOnInteraction);
@@ -528,7 +559,7 @@
 
   renderCharacterPool();
   updateDrawButton();
-  updateLanguage('zh-TW');
+  updateLanguage(getInitialLanguage());
 
   /* ── 畫面切換（Fade In / Out）──────────────────────────── */
 
@@ -1075,7 +1106,6 @@
 
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
-  const PRELOAD_TIMEOUT_MS = 15000;
   const PORTRAIT_BG_VIDEO_SRC = 'webm/light_2.webm';
   const BACKGROUND_VIDEO_SRC = 'webm/background.webm';
   const REVEAL_TRANSITION_VIDEO_SRC = 'webm/light_1.webm';
@@ -1218,13 +1248,13 @@
     const loadingScreen = document.getElementById('loading-screen');
     const progressBar = document.getElementById('loading-progress-bar');
     const progressText = document.getElementById('loading-progress-text');
+    const skipLoadingBtn = document.getElementById('skip-loading-btn');
     if (!loadingScreen) return;
 
     const assets = collectPreloadAssets();
     const totalAssets = assets.length;
     let completedAssets = 0;
     let loadingDismissed = false;
-    let preloadTimeoutId = null;
 
     function updatePreloadProgress() {
       const percent = totalAssets === 0
@@ -1239,16 +1269,17 @@
       }
     }
 
-    function dismissLoadingScreen() {
+    function dismissLoadingScreen(forceComplete = false) {
       if (loadingDismissed) return;
       loadingDismissed = true;
-      clearTimeout(preloadTimeoutId);
 
-      if (progressBar) {
-        progressBar.style.width = '100%';
-      }
-      if (progressText) {
-        progressText.textContent = '100%';
+      if (forceComplete) {
+        if (progressBar) {
+          progressBar.style.width = '100%';
+        }
+        if (progressText) {
+          progressText.textContent = '100%';
+        }
       }
 
       loadingScreen.classList.add('loading-screen--hidden');
@@ -1263,12 +1294,21 @@
       completedAssets += 1;
       updatePreloadProgress();
       if (completedAssets >= totalAssets) {
-        dismissLoadingScreen();
+        dismissLoadingScreen(true);
       }
     }
 
     updatePreloadProgress();
-    preloadTimeoutId = setTimeout(dismissLoadingScreen, PRELOAD_TIMEOUT_MS);
+
+    if (skipLoadingBtn) {
+      setTimeout(() => {
+        skipLoadingBtn.classList.add('loading-screen__skip--visible');
+      }, 3000);
+
+      skipLoadingBtn.addEventListener('click', () => {
+        dismissLoadingScreen(false);
+      });
+    }
 
     assets.forEach((asset) => {
       preloadAsset(asset).finally(markAssetLoaded);
