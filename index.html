@@ -11,6 +11,17 @@
 </head>
 <body>
 
+  <!-- 全螢幕資源預載畫面 -->
+  <div id="loading-screen" class="loading-screen" aria-live="polite" aria-busy="true">
+    <div class="loading-screen__inner">
+      <p class="loading-screen__text" data-i18n="loadingMessage">正在引導古靈之石的力量...</p>
+      <div class="loading-screen__progress-track" aria-hidden="true">
+        <div id="loading-progress-bar" class="loading-screen__progress-bar"></div>
+      </div>
+      <p id="loading-progress-text" class="loading-screen__percent">0%</p>
+    </div>
+  </div>
+
   <!-- 動態影片背景（最底層） -->
   <video
     class="bg-video"
@@ -191,7 +202,7 @@
       preload="auto"
       aria-hidden="true"
     >
-      <source src="webm/light_2.mp4" type="video/mp4">
+      <source src="webm/light_2.webm" type="video/webm">
     </video>
 
     <div class="winner-overlay__content">

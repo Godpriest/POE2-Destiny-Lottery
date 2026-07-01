@@ -36,6 +36,7 @@
       setupScreenAria: '抽獎設定',
       lotteryScreenAria: '抽獎動畫',
       filterPoolAria: '角色過濾池',
+      loadingMessage: '正在引導古靈之石的力量...',
       characters: {
         druid: '德魯伊',
         huntress: '女獵人',
@@ -74,6 +75,7 @@
       setupScreenAria: 'Lottery setup',
       lotteryScreenAria: 'Lottery animation',
       filterPoolAria: 'Character filter pool',
+      loadingMessage: 'Channeling the power of ancient gems...',
       characters: {
         druid: 'Druid',
         huntress: 'Huntress',
@@ -1073,6 +1075,139 @@
 
   drawBtn.addEventListener('click', startLottery);
   winnerReturnBtn.addEventListener('click', returnToSetup);
+
+  /* ── 資源預載畫面 ───────────────────────────────────────── */
+
+  const PRELOAD_TIMEOUT_MS = 5000;
+  const PRELOAD_CHARACTER_IDS = [
+    'druid',
+    'huntress',
+    'mercenary',
+    'monk',
+    'ranger',
+    'sorceress',
+    'warrior',
+    'witch',
+  ];
+
+  function collectPreloadAssets() {
+    const assets = [];
+
+    PRELOAD_CHARACTER_IDS.forEach((characterId) => {
+      assets.push({ type: 'image', src: `img/icon/icon_${characterId}.webp` });
+      assets.push({ type: 'image', src: `img/role/${characterId}.webp` });
+    });
+
+    [
+      'bgm/The Veil of Forgotten Dreams.mp3',
+      'bgm/Iron Gate Impact.mp3',
+      'bgm/drum.wav',
+    ].forEach((src) => {
+      assets.push({ type: 'audio', src });
+    });
+
+    return assets;
+  }
+
+  function preloadImageAsset(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const finish = () => resolve();
+      img.onload = finish;
+      img.onerror = finish;
+      img.src = src;
+    });
+  }
+
+  function preloadAudioAsset(src) {
+    return new Promise((resolve) => {
+      const audio = new Audio();
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        audio.src = '';
+        resolve();
+      };
+
+      audio.addEventListener('canplaythrough', finish, { once: true });
+      audio.addEventListener('error', finish, { once: true });
+      audio.preload = 'auto';
+      audio.src = src;
+      audio.load();
+
+      setTimeout(finish, 3000);
+    });
+  }
+
+  function initAssetPreloader() {
+    const loadingScreen = document.getElementById('loading-screen');
+    const progressBar = document.getElementById('loading-progress-bar');
+    const progressText = document.getElementById('loading-progress-text');
+    if (!loadingScreen) return;
+
+    const assets = collectPreloadAssets();
+    const totalAssets = assets.length;
+    let completedAssets = 0;
+    let loadingDismissed = false;
+    let preloadTimeoutId = null;
+
+    function updatePreloadProgress() {
+      const percent = totalAssets === 0
+        ? 100
+        : Math.min(100, Math.round((completedAssets / totalAssets) * 100));
+
+      if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+      }
+      if (progressText) {
+        progressText.textContent = `${percent}%`;
+      }
+    }
+
+    function dismissLoadingScreen() {
+      if (loadingDismissed) return;
+      loadingDismissed = true;
+      clearTimeout(preloadTimeoutId);
+
+      if (progressBar) {
+        progressBar.style.width = '100%';
+      }
+      if (progressText) {
+        progressText.textContent = '100%';
+      }
+
+      loadingScreen.classList.add('loading-screen--hidden');
+      loadingScreen.setAttribute('aria-busy', 'false');
+
+      setTimeout(() => {
+        loadingScreen.remove();
+      }, 750);
+    }
+
+    function markAssetLoaded() {
+      completedAssets += 1;
+      updatePreloadProgress();
+      if (completedAssets >= totalAssets) {
+        dismissLoadingScreen();
+      }
+    }
+
+    updatePreloadProgress();
+
+    preloadTimeoutId = setTimeout(dismissLoadingScreen, PRELOAD_TIMEOUT_MS);
+
+    assets.forEach((asset) => {
+      const preloadPromise = asset.type === 'image'
+        ? preloadImageAsset(asset.src)
+        : preloadAudioAsset(asset.src);
+
+      preloadPromise.finally(markAssetLoaded);
+    });
+  }
+
+  initAssetPreloader();
 
   /* 匯出供後續模組使用 */
   window.POE2Lottery = {
