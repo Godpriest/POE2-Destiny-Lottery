@@ -936,10 +936,7 @@
     if (winnerContentRevealed) return;
     winnerContentRevealed = true;
     if (portraitBgVideo) {
-      portraitBgVideo.loop = true;
-      portraitBgVideo.currentTime = 0;
-      portraitBgVideo.classList.add('bg-glow-video--active');
-      portraitBgVideo.play().catch(() => {});
+      playPortraitBgVideo();
     }
 
     winnerPortraitEl.classList.add('winner-overlay__portrait--revealed');
@@ -1078,7 +1075,11 @@
 
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
-  const PRELOAD_TIMEOUT_MS = 5000;
+  const PRELOAD_TIMEOUT_MS = 15000;
+  const PORTRAIT_BG_VIDEO_SRC = 'webm/light_2.webm';
+  const BACKGROUND_VIDEO_SRC = 'webm/background.webm';
+  const REVEAL_TRANSITION_VIDEO_SRC = 'webm/light_1.webm';
+
   const PRELOAD_CHARACTER_IDS = [
     'druid',
     'huntress',
@@ -1089,6 +1090,20 @@
     'warrior',
     'witch',
   ];
+
+  function normalizeVideoSource(videoEl, src) {
+    if (!videoEl) return;
+
+    let sourceEl = videoEl.querySelector('source');
+    if (!sourceEl) {
+      sourceEl = document.createElement('source');
+      videoEl.appendChild(sourceEl);
+    }
+
+    sourceEl.src = src;
+    sourceEl.type = 'video/webm';
+    videoEl.preload = 'auto';
+  }
 
   function collectPreloadAssets() {
     const assets = [];
@@ -1105,6 +1120,18 @@
     ].forEach((src) => {
       assets.push({ type: 'audio', src });
     });
+
+    const bgVideoEl = document.querySelector('.bg-video');
+    const transitionVideoEl = document.getElementById('reveal-transition-video');
+    const portraitVideoEl = document.getElementById('portrait-bg-video');
+
+    normalizeVideoSource(bgVideoEl, BACKGROUND_VIDEO_SRC);
+    normalizeVideoSource(transitionVideoEl, REVEAL_TRANSITION_VIDEO_SRC);
+    normalizeVideoSource(portraitVideoEl, PORTRAIT_BG_VIDEO_SRC);
+
+    assets.push({ type: 'video', src: BACKGROUND_VIDEO_SRC, element: bgVideoEl });
+    assets.push({ type: 'video', src: REVEAL_TRANSITION_VIDEO_SRC, element: transitionVideoEl });
+    assets.push({ type: 'video', src: PORTRAIT_BG_VIDEO_SRC, element: portraitVideoEl });
 
     return assets;
   }
@@ -1127,7 +1154,8 @@
       const finish = () => {
         if (settled) return;
         settled = true;
-        audio.src = '';
+        audio.removeAttribute('src');
+        audio.load();
         resolve();
       };
 
@@ -1136,9 +1164,54 @@
       audio.preload = 'auto';
       audio.src = src;
       audio.load();
-
-      setTimeout(finish, 3000);
     });
+  }
+
+  function preloadVideoAsset(src, videoEl) {
+    return new Promise((resolve) => {
+      if (videoEl) {
+        let settled = false;
+
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+
+        const onCanPlayThrough = () => finish();
+
+        videoEl.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+        videoEl.addEventListener('error', finish, { once: true });
+        videoEl.preload = 'auto';
+        videoEl.load();
+
+        if (videoEl.readyState >= 4) {
+          finish();
+        }
+        return;
+      }
+
+      fetch(src)
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.blob();
+        })
+        .then(() => resolve())
+        .catch(() => resolve());
+    });
+  }
+
+  function preloadAsset(asset) {
+    if (asset.type === 'image') {
+      return preloadImageAsset(asset.src);
+    }
+    if (asset.type === 'audio') {
+      return preloadAudioAsset(asset.src);
+    }
+    if (asset.type === 'video') {
+      return preloadVideoAsset(asset.src, asset.element);
+    }
+    return Promise.resolve();
   }
 
   function initAssetPreloader() {
@@ -1195,16 +1268,31 @@
     }
 
     updatePreloadProgress();
-
     preloadTimeoutId = setTimeout(dismissLoadingScreen, PRELOAD_TIMEOUT_MS);
 
     assets.forEach((asset) => {
-      const preloadPromise = asset.type === 'image'
-        ? preloadImageAsset(asset.src)
-        : preloadAudioAsset(asset.src);
-
-      preloadPromise.finally(markAssetLoaded);
+      preloadAsset(asset).finally(markAssetLoaded);
     });
+  }
+
+  function playPortraitBgVideo() {
+    if (!portraitBgVideo) return;
+
+    portraitBgVideo.loop = true;
+    portraitBgVideo.currentTime = 0;
+    portraitBgVideo.classList.add('bg-glow-video--active');
+
+    const startPlayback = () => {
+      portraitBgVideo.play().catch(() => {});
+    };
+
+    if (portraitBgVideo.readyState >= 3) {
+      startPlayback();
+      return;
+    }
+
+    portraitBgVideo.addEventListener('canplaythrough', startPlayback, { once: true });
+    portraitBgVideo.load();
   }
 
   initAssetPreloader();
