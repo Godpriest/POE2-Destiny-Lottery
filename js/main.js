@@ -6,6 +6,59 @@
 (function () {
   'use strict';
 
+  /* ── 靜態資產 CDN（Backblaze B2 + Cloudflare Pages 代理）── */
+
+  const ASSET_BASE_URL = 'https://poe2-b2-proxy.pages.dev';
+
+  function assetUrl(path) {
+    const normalized = path.replace(/^\/+/, '');
+    const encodedPath = normalized
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')
+      .replace(/%2F/gi, '/');
+    return `${ASSET_BASE_URL}/${encodedPath}`;
+  }
+
+  const BGM_MAIN_SRC = assetUrl('bgm/The Veil of Forgotten Dreams.mp3');
+  const BGM_END_SRC = assetUrl('bgm/Iron Gate Impact.mp3');
+  const DRUM_SRC = assetUrl('bgm/drum.wav');
+  const PORTRAIT_BG_VIDEO_SRC = assetUrl('webm/light_2.webm');
+  const BACKGROUND_VIDEO_SRC = assetUrl('webm/background.webm');
+  const REVEAL_TRANSITION_VIDEO_SRC = assetUrl('webm/light_1.webm');
+
+  function setElementSource(mediaEl, src, type) {
+    if (!mediaEl) return;
+
+    let sourceEl = mediaEl.querySelector('source');
+    if (!sourceEl) {
+      sourceEl = document.createElement('source');
+      mediaEl.appendChild(sourceEl);
+    }
+
+    sourceEl.src = src;
+    if (type) sourceEl.type = type;
+    if (mediaEl.tagName === 'VIDEO') {
+      mediaEl.preload = 'auto';
+    }
+    mediaEl.load();
+  }
+
+  function normalizeVideoSource(videoEl, src) {
+    setElementSource(videoEl, src, 'video/webm');
+  }
+
+  function initStaticMediaSources() {
+    setElementSource(document.getElementById('bgm'), BGM_MAIN_SRC, 'audio/mpeg');
+    setElementSource(document.getElementById('end-bgm'), BGM_END_SRC, 'audio/mpeg');
+    normalizeVideoSource(document.querySelector('.bg-video'), BACKGROUND_VIDEO_SRC);
+    normalizeVideoSource(document.getElementById('reveal-transition-video'), REVEAL_TRANSITION_VIDEO_SRC);
+    normalizeVideoSource(document.getElementById('portrait-bg-video'), PORTRAIT_BG_VIDEO_SRC);
+  }
+
+  initStaticMediaSources();
+
   /* ── 語系字典 ───────────────────────────────────────────── */
 
   const translations = {
@@ -96,7 +149,6 @@
 
   /* ── 太鼓音效（Web Audio API 全域狀態，須置頂避免 TDZ）── */
 
-  const DRUM_SRC = 'bgm/drum.wav';
   const DRUM_POOL_SIZE = 16;
 
   let drumAudioContext = null;
@@ -473,13 +525,13 @@
   /** @type {string[]} 目前在獎池內的角色 id */
   let active_pool = CHARACTERS.map((c) => c.id);
 
-  /** 過濾池與抽獎軌道共用：img/icon/icon_{id}.webp */
+  /** 過濾池與抽獎軌道共用：img_character/icon/icon_{id}.webp */
   function getTrackIconPath(characterId) {
-    return `img/icon/icon_${characterId}.webp`;
+    return assetUrl(`img_character/icon/icon_${characterId}.webp`);
   }
 
   function getRolePortraitPath(characterId) {
-    return `img/role/${characterId}.webp`;
+    return assetUrl(`img_character/character/${characterId}.webp`);
   }
 
   function isValidCharacterId(id) {
@@ -1251,10 +1303,6 @@
 
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
-  const PORTRAIT_BG_VIDEO_SRC = 'webm/light_2.webm';
-  const BACKGROUND_VIDEO_SRC = 'webm/background.webm';
-  const REVEAL_TRANSITION_VIDEO_SRC = 'webm/light_1.webm';
-
   const PRELOAD_CHARACTER_IDS = [
     'druid',
     'huntress',
@@ -1266,32 +1314,15 @@
     'witch',
   ];
 
-  function normalizeVideoSource(videoEl, src) {
-    if (!videoEl) return;
-
-    let sourceEl = videoEl.querySelector('source');
-    if (!sourceEl) {
-      sourceEl = document.createElement('source');
-      videoEl.appendChild(sourceEl);
-    }
-
-    sourceEl.src = src;
-    sourceEl.type = 'video/webm';
-    videoEl.preload = 'auto';
-  }
-
   function collectPreloadAssets() {
     const assets = [];
 
     PRELOAD_CHARACTER_IDS.forEach((characterId) => {
-      assets.push({ type: 'image', src: `img/icon/icon_${characterId}.webp` });
-      assets.push({ type: 'image', src: `img/role/${characterId}.webp` });
+      assets.push({ type: 'image', src: getTrackIconPath(characterId) });
+      assets.push({ type: 'image', src: getRolePortraitPath(characterId) });
     });
 
-    [
-      'bgm/The Veil of Forgotten Dreams.mp3',
-      'bgm/Iron Gate Impact.mp3',
-    ].forEach((src) => {
+    [BGM_MAIN_SRC, BGM_END_SRC].forEach((src) => {
       assets.push({ type: 'audio', src });
     });
 
