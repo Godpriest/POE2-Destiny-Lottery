@@ -74,8 +74,7 @@
       copyShareLink: '複製專屬連結',
       webhookRequired: '請先輸入 Webhook 網址',
       copyShareCopied: '已複製！',
-      filterPoolTitle: '角色過濾池',
-      poolEmptyHint: '獎池內至少要有一隻角色',
+      poolEmptyHint: '獎池內至少要有一項',
       lotteryTitle: '命運揭曉',
       wheelStopped: '命運的輪迴已停止...',
       destinyChosen: '命運選擇了：',
@@ -88,19 +87,8 @@
       volumeSlider: '音量',
       setupScreenAria: '抽獎設定',
       lotteryScreenAria: '抽獎動畫',
-      filterPoolAria: '角色過濾池',
       loadingMessage: '正在前往瓦爾克拉斯...',
       skipLoading: '跳過讀取，直接進入命運輪迴（可能造成畫面卡頓）',
-      characters: {
-        druid: '德魯伊',
-        huntress: '女獵人',
-        mercenary: '傭兵',
-        monk: '武僧',
-        ranger: '遊俠',
-        sorceress: '女術者',
-        warrior: '戰士',
-        witch: '女巫',
-      },
     },
     en: {
       pageTitle: 'POE2 Destiny Lottery',
@@ -114,8 +102,7 @@
       copyShareLink: 'Copy Share Link',
       webhookRequired: 'Please enter a Webhook URL first',
       copyShareCopied: 'Copied!',
-      filterPoolTitle: 'Character Filter Pool',
-      poolEmptyHint: 'At least one character must remain in the pool',
+      poolEmptyHint: 'At least one item must remain in the pool',
       lotteryTitle: 'Destiny Revealed',
       wheelStopped: 'The Wheel of Destiny Has Stopped...',
       destinyChosen: 'Destiny Has Chosen: ',
@@ -128,19 +115,8 @@
       volumeSlider: 'Volume',
       setupScreenAria: 'Lottery setup',
       lotteryScreenAria: 'Lottery animation',
-      filterPoolAria: 'Character filter pool',
       loadingMessage: 'Traveling to Wraeclast...',
       skipLoading: 'Skip loading and enter the wheel of fate (may cause lag)',
-      characters: {
-        druid: 'Druid',
-        huntress: 'Huntress',
-        mercenary: 'Mercenary',
-        monk: 'Monk',
-        ranger: 'Ranger',
-        sorceress: 'Sorceress',
-        warrior: 'Warrior',
-        witch: 'Witch',
-      },
     },
   };
 
@@ -177,29 +153,65 @@
     return value ?? '';
   }
 
-  function getCharacterName(id) {
-    return getTranslation(currentLang, `characters.${id}`);
+  /**
+   * 語系對照表 — 獎池類型、UI 標籤（項目名稱改由 data/pools.json 提供）
+   */
+  const LANGUAGE_MAPPING = {
+    poolTypes: {
+      Character: { 'zh-TW': '角色', en: 'Character' },
+      Ascendancy: { 'zh-TW': '昇華', en: 'Ascendancy' },
+      Weapon: { 'zh-TW': '武器', en: 'Weapon' },
+    },
+    labels: {
+      filter: { 'zh-TW': '過濾器', en: 'Filter' },
+      poolTypeSwitcher: { 'zh-TW': '獎池類型', en: 'Pool type' },
+    },
+  };
+
+  function resolveLangText(entry, lang = currentLang) {
+    if (!entry || typeof entry !== 'object') return '';
+    return entry[lang] || entry.en || '';
   }
 
-  /** Discord Embed 大圖：以繁中角色名為 key，填入 Discord 可存取的圖片 URL */
-  const characterImages = {
-    '德魯伊': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844651403772045/druid.webp?ex=6a464fc7&is=6a44fe47&hm=29c22f6c4bef5f263e3430ff7da84df8d92fb3f89e33a4ca597a3c6e5c7b8097&',
-    '女獵人': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844651940773999/huntress.webp?ex=6a464fc7&is=6a44fe47&hm=4f0935416792f0433b42238f79f804d8b7209d9da845d29e060f8f4b28e7a4fe&',
-    '傭兵': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844652993417236/mercenary.webp?ex=6a464fc7&is=6a44fe47&hm=27073ff3fa86c663a21bafb80d1bf4f64341550943354a911814ab777529b9e3&',
-    '武僧': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844653568299068/monk.webp?ex=6a464fc7&is=6a44fe47&hm=3bb6c77206cc2fddc905581a277ab3cb8587c467bb70a36cc0718b3f9ba7cc96&',
-    '遊俠': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844654172143656/ranger.webp?ex=6a464fc8&is=6a44fe48&hm=0b5dedf8c63d9f78238c110cc65091be3a1d5a684e5a71d6374278de534bf066&',
-    '女術者': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844654885048352/sorceress.webp?ex=6a464fc8&is=6a44fe48&hm=0fc8720b6586d61db3bb29e72e53ee8fb8667cb82503e8fa266ba695723f6ead&',
-    '戰士': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844655484960828/warrior.webp?ex=6a464fc8&is=6a44fe48&hm=fdb46649741079f4ea1e7bc97730f1ff6f2b59de27094c351a20e23051846445&',
-    '女巫': 'https://cdn.discordapp.com/attachments/1521843690899767446/1521844655988146246/witch.webp?ex=6a464fc8&is=6a44fe48&hm=a8e02db9b3b5059e7f245a1d6d1a58e5adb62e05e080170e26821cbbf054ea48&',
-  };
+  function getPoolTypeName(poolKey, lang = currentLang) {
+    return resolveLangText(LANGUAGE_MAPPING.poolTypes[poolKey], lang) || poolKey;
+  }
+
+  function getFilterLabel(lang = currentLang) {
+    return resolveLangText(LANGUAGE_MAPPING.labels.filter, lang) || 'Filter';
+  }
+
+  function getFilterPoolTitle(poolKey = currentPoolKey, lang = currentLang) {
+    const typeName = getPoolTypeName(poolKey, lang);
+    const filterLabel = getFilterLabel(lang);
+    if (lang === 'zh-TW') {
+      return `${typeName}${filterLabel}`;
+    }
+    return `${typeName} ${filterLabel}`;
+  }
+
+  function getFilterPoolAriaLabel(poolKey = currentPoolKey, lang = currentLang) {
+    return getFilterPoolTitle(poolKey, lang);
+  }
+
+  function getPoolItemName(id, poolKey = currentPoolKey, lang = currentLang) {
+    const item = getPoolItemById(id, poolKey);
+    if (item?.name) {
+      return resolveLangText(item.name, lang) || id;
+    }
+    return id;
+  }
 
   const WEBHOOK_EMBED_COLOR = 13149026; // #C8A362 POE2 亮金色
 
+  function getPoolItemDiscordImage(id, poolKey = lastDrawPoolKey) {
+    const item = getPoolItemById(id, poolKey);
+    if (!item?.discordImage) return '';
+    return String(item.discordImage).trim();
+  }
+
   function buildWebhookEmbed(winnerName, exileId, winnerId) {
-    const zhName = winnerId
-      ? getTranslation('zh-TW', `characters.${winnerId}`)
-      : winnerName;
-    const imageUrl = (characterImages[zhName] || characterImages[winnerName] || '').trim();
+    const imageUrl = winnerId ? getPoolItemDiscordImage(winnerId, lastDrawPoolKey) : '';
 
     const embed = {
       title: currentLang === 'en'
@@ -215,7 +227,7 @@
       embed.image = { url: imageUrl };
     }
 
-    const footerText = buildWebhookFooterText(getExcludedCharacterNames());
+    const footerText = buildWebhookFooterText(getExcludedPoolItemNames(lastDrawPoolKey));
     if (footerText) {
       embed.footer = { text: footerText };
     }
@@ -233,6 +245,7 @@
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       if (el.dataset.feedbackActive === 'true') return;
+      if (el.id === 'filter-pool-title') return;
       const key = el.dataset.i18n;
       el.textContent = getTranslation(normalizedLang, key);
     });
@@ -243,6 +256,7 @@
     });
 
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+      if (el.id === 'character-pool') return;
       const key = el.dataset.i18nAria;
       const text = getTranslation(normalizedLang, key);
       el.setAttribute('aria-label', text);
@@ -257,7 +271,9 @@
       langSelect.setAttribute('aria-label', getTranslation(normalizedLang, 'langSelect'));
     }
 
-    updateCharacterNames();
+    updateFilterPoolNames();
+    updateFilterPoolTitle();
+    updatePoolSwitcherUI();
     updateWinnerOverlayText();
     updateLotteryTrackLabels();
     updateVolumeUI();
@@ -271,7 +287,7 @@
       if (!characterId) return;
       const nameEl = item.querySelector('.lottery-item__name');
       const imgEl = item.querySelector('.lottery-item__img');
-      const displayName = getCharacterName(characterId);
+      const displayName = getPoolItemName(characterId, lastDrawPoolKey || currentPoolKey);
       if (nameEl) nameEl.textContent = displayName;
       if (imgEl) imgEl.alt = displayName;
     });
@@ -281,11 +297,11 @@
     if (!lastWinnerId) return;
     const winnerNameEl = document.getElementById('winner-name');
     if (winnerNameEl) {
-      winnerNameEl.textContent = getCharacterName(lastWinnerId);
+      winnerNameEl.textContent = getPoolItemName(lastWinnerId, lastDrawPoolKey);
     }
     const winnerPortraitEl = document.getElementById('winner-portrait');
     if (winnerPortraitEl && lastWinnerId) {
-      winnerPortraitEl.alt = getCharacterName(lastWinnerId);
+      winnerPortraitEl.alt = getPoolItemName(lastWinnerId, lastDrawPoolKey);
     }
   }
 
@@ -509,85 +525,321 @@
   initVolumeControl();
   tryPlayMainBgm();
 
-  /* ── 角色過濾獎池 ───────────────────────────────────────── */
+  /* ── 獎池定義與過濾池（資料來源：data/pools.json）────────── */
 
-  const CHARACTERS = [
-    { id: 'druid' },
-    { id: 'huntress' },
-    { id: 'mercenary' },
-    { id: 'monk' },
-    { id: 'ranger' },
-    { id: 'sorceress' },
-    { id: 'warrior' },
-    { id: 'witch' },
-  ];
+  const POOLS_JSON_URL = 'data/pools.json';
 
-  /** @type {string[]} 目前在獎池內的角色 id */
-  let active_pool = CHARACTERS.map((c) => c.id);
+  /** @type {Record<string, { key: string, items: Array<{ id: string, name?: object, iconPath?: string, portraitPath?: string }> }>} */
+  let POOLS = {};
 
-  /** 過濾池與抽獎軌道共用：img_character/icon/icon_{id}.webp */
+  let currentPoolKey = 'Character';
+  let lastDrawPoolKey = 'Character';
+  let isRolling = false;
+
+  const poolFilterState = {};
+  let active_pool = [];
+
+  function resolvePoolAssetPath(path) {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    return assetUrl(path);
+  }
+
+  function validatePoolItem(item, poolKey, index) {
+    const label = `[pools.json] ${poolKey}[${index}]`;
+
+    if (!item || typeof item !== 'object') {
+      console.warn(`${label}：項目格式無效，已略過。`, item);
+      return false;
+    }
+
+    if (typeof item.id !== 'string' || !item.id.trim()) {
+      console.warn(`${label}：缺少有效的 id，已略過。`, item);
+      return false;
+    }
+
+    if (!item.name || typeof item.name !== 'object') {
+      console.warn(`${label}（id: ${item.id}）：缺少 name 物件，已略過。`, item);
+      return false;
+    }
+
+    const hasName = Boolean(item.name['zh-TW'] || item.name.en);
+    if (!hasName) {
+      console.warn(`${label}（id: ${item.id}）：name 至少需要 zh-TW 或 en，已略過。`, item);
+      return false;
+    }
+
+    return true;
+  }
+
+  function normalizePoolItem(item) {
+    const iconPath = item.iconPath || `img_character/icon/icon_${item.id}.webp`;
+    const portraitPath = item.portraitPath || `img_character/character/${item.id}.webp`;
+    const rawWeight = Number(item.weight);
+    const weight = Number.isFinite(rawWeight) && rawWeight > 0 ? rawWeight : 1;
+
+    return {
+      ...item,
+      weight,
+      discordImage: typeof item.discordImage === 'string' ? item.discordImage.trim() : '',
+      iconPath: resolvePoolAssetPath(iconPath),
+      portraitPath: resolvePoolAssetPath(portraitPath),
+    };
+  }
+
+  function buildPoolsFromJson(raw) {
+    const pools = {};
+
+    if (!raw || typeof raw !== 'object') {
+      console.warn('[pools.json] 根物件格式無效，將使用空獎池。');
+      return pools;
+    }
+
+    Object.keys(raw).forEach((key) => {
+      const sourceItems = raw[key];
+
+      if (!Array.isArray(sourceItems)) {
+        console.warn(`[pools.json] ${key}：不是 items 陣列，已視為空池。`);
+        pools[key] = { key, items: [] };
+        return;
+      }
+
+      const seenIds = new Set();
+      const items = [];
+
+      sourceItems.forEach((item, index) => {
+        if (!validatePoolItem(item, key, index)) return;
+
+        if (seenIds.has(item.id)) {
+          console.warn(`[pools.json] ${key}：重複的 id「${item.id}」，已略過。`);
+          return;
+        }
+
+        seenIds.add(item.id);
+        items.push(normalizePoolItem(item));
+      });
+
+      pools[key] = { key, items };
+    });
+
+    return pools;
+  }
+
+  async function loadPoolsFromJson() {
+    const response = await fetch(POOLS_JSON_URL);
+    if (!response.ok) {
+      throw new Error(`無法載入 ${POOLS_JSON_URL}（HTTP ${response.status}）`);
+    }
+
+    const raw = await response.json();
+    return buildPoolsFromJson(raw);
+  }
+
+  function initializePoolState() {
+    Object.keys(poolFilterState).forEach((key) => {
+      delete poolFilterState[key];
+    });
+
+    Object.keys(POOLS).forEach((key) => {
+      poolFilterState[key] = POOLS[key].items.map((item) => item.id);
+    });
+
+    if (!POOLS[currentPoolKey]) {
+      currentPoolKey = Object.keys(POOLS)[0] || 'Character';
+    }
+
+    active_pool = poolFilterState[currentPoolKey] || [];
+  }
+
+  function getActivePoolDef() {
+    return POOLS[currentPoolKey] ?? null;
+  }
+
+  function getPoolItemById(id, poolKey = currentPoolKey) {
+    return POOLS[poolKey]?.items.find((item) => item.id === id);
+  }
+
+  function getPoolItemIconPath(id, poolKey = currentPoolKey) {
+    const item = getPoolItemById(id, poolKey);
+    if (item?.iconPath) return item.iconPath;
+    return assetUrl(`img_character/icon/icon_${id}.webp`);
+  }
+
+  function getPoolItemPortraitPath(id, poolKey = currentPoolKey) {
+    const item = getPoolItemById(id, poolKey);
+    if (item?.portraitPath) return item.portraitPath;
+    return assetUrl(`img_character/character/${id}.webp`);
+  }
+
   function getTrackIconPath(characterId) {
-    return assetUrl(`img_character/icon/icon_${characterId}.webp`);
+    return getPoolItemIconPath(characterId);
   }
 
   function getRolePortraitPath(characterId) {
-    return assetUrl(`img_character/character/${characterId}.webp`);
+    return getPoolItemPortraitPath(characterId, lastDrawPoolKey);
   }
 
-  function isValidCharacterId(id) {
-    return CHARACTERS.some((c) => c.id === id);
+  function isValidPoolItemId(id, poolKey = currentPoolKey) {
+    return POOLS[poolKey]?.items.some((item) => item.id === id) ?? false;
   }
 
   const characterPoolEl = document.getElementById('character-pool');
+  const filterPoolTitleEl = document.getElementById('filter-pool-title');
+  const poolTypeSwitcherEl = document.getElementById('pool-type-switcher');
   const drawBtn = document.getElementById('draw-btn');
   const drawBtnHint = document.getElementById('draw-btn-hint');
 
-  function renderCharacterPool() {
+  function updatePoolSwitcherUI() {
+    if (!poolTypeSwitcherEl) return;
+
+    poolTypeSwitcherEl.classList.toggle('pool-type-switcher--latin', currentLang === 'en');
+    poolTypeSwitcherEl.setAttribute(
+      'aria-label',
+      resolveLangText(LANGUAGE_MAPPING.labels.poolTypeSwitcher, currentLang) || 'Pool type',
+    );
+
+    const track = poolTypeSwitcherEl.querySelector('.pool-type-switcher__track');
+    const indicator = poolTypeSwitcherEl.querySelector('.pool-type-switcher__indicator');
+    const buttons = poolTypeSwitcherEl.querySelectorAll('.pool-type-switcher__btn');
+    let activeBtn = null;
+
+    buttons.forEach((btn) => {
+      const poolKey = btn.dataset.pool;
+      if (poolKey) {
+        btn.textContent = getPoolTypeName(poolKey, currentLang);
+      }
+
+      const isActive = poolKey === currentPoolKey;
+      btn.classList.toggle('pool-type-switcher__btn--active', isActive);
+      btn.setAttribute('aria-selected', String(isActive));
+      if (isActive) activeBtn = btn;
+    });
+
+    if (activeBtn && indicator && track) {
+      const trackRect = track.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      indicator.style.width = `${btnRect.width}px`;
+      indicator.style.transform = `translateX(${btnRect.left - trackRect.left}px)`;
+    }
+  }
+
+  function updatePoolSwitcherState() {
+    if (!poolTypeSwitcherEl) return;
+
+    const disabled = isRolling;
+    poolTypeSwitcherEl.classList.toggle('pool-type-switcher--locked', disabled);
+    poolTypeSwitcherEl.querySelectorAll('.pool-type-switcher__btn').forEach((btn) => {
+      btn.disabled = disabled;
+      btn.setAttribute('aria-disabled', String(disabled));
+    });
+  }
+
+  function switchPoolType(poolKey) {
+    if (isRolling || !POOLS[poolKey] || poolKey === currentPoolKey) return;
+
+    currentPoolKey = poolKey;
+    active_pool = poolFilterState[poolKey];
+
+    updatePoolSwitcherUI();
+    updateFilterPoolTitle();
+    renderFilterPool();
+    updateDrawButton();
+  }
+
+  function initPoolTypeSwitcher() {
+    if (!poolTypeSwitcherEl) return;
+
+    poolTypeSwitcherEl.querySelectorAll('.pool-type-switcher__btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        switchPoolType(btn.dataset.pool);
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      updatePoolSwitcherUI();
+    });
+
+    updatePoolSwitcherUI();
+    updatePoolSwitcherState();
+
+    requestAnimationFrame(() => {
+      updatePoolSwitcherUI();
+    });
+  }
+
+  function renderFilterPool() {
+    if (!characterPoolEl) return;
+
+    const poolDef = getActivePoolDef();
+    if (!poolDef?.items?.length) {
+      characterPoolEl.innerHTML = '';
+      return;
+    }
+
     characterPoolEl.innerHTML = '';
 
-    CHARACTERS.forEach((char) => {
-      const charName = getCharacterName(char.id);
+    poolDef.items.forEach((item) => {
+      const itemName = getPoolItemName(item.id);
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'character-icon';
-      btn.dataset.id = char.id;
-      btn.title = charName;
-      btn.setAttribute('aria-label', charName);
+      btn.dataset.id = item.id;
+      btn.title = itemName;
+      btn.setAttribute('aria-label', itemName);
       btn.setAttribute('aria-pressed', 'true');
 
       const img = document.createElement('img');
       img.className = 'character-icon__img';
-      img.src = getTrackIconPath(char.id);
-      img.alt = charName;
+      img.src = getPoolItemIconPath(item.id);
+      img.alt = itemName;
       img.width = 800;
       img.height = 600;
 
       const name = document.createElement('span');
       name.className = 'character-icon__name';
-      name.textContent = charName;
+      name.textContent = itemName;
 
       btn.appendChild(img);
       btn.appendChild(name);
-      btn.addEventListener('click', () => toggleCharacter(char.id));
+      btn.addEventListener('click', () => togglePoolItem(item.id));
       characterPoolEl.appendChild(btn);
     });
+
+    syncFilterPoolIcons();
   }
 
-  function updateCharacterNames() {
+  function updateFilterPoolTitle() {
+    const titleText = getFilterPoolTitle(currentPoolKey, currentLang);
+    const ariaText = getFilterPoolAriaLabel(currentPoolKey, currentLang);
+
+    if (filterPoolTitleEl) {
+      filterPoolTitleEl.textContent = titleText;
+    }
+
+    if (characterPoolEl) {
+      characterPoolEl.setAttribute('aria-label', ariaText);
+    }
+  }
+
+  function updateFilterPoolNames() {
+    if (!characterPoolEl) return;
+
     characterPoolEl.querySelectorAll('.character-icon').forEach((btn) => {
       const id = btn.dataset.id;
-      const charName = getCharacterName(id);
+      const itemName = getPoolItemName(id);
       const nameEl = btn.querySelector('.character-icon__name');
       const imgEl = btn.querySelector('.character-icon__img');
 
-      if (nameEl) nameEl.textContent = charName;
-      if (imgEl) imgEl.alt = charName;
-      btn.title = charName;
-      btn.setAttribute('aria-label', charName);
+      if (nameEl) nameEl.textContent = itemName;
+      if (imgEl) imgEl.alt = itemName;
+      btn.title = itemName;
+      btn.setAttribute('aria-label', itemName);
     });
   }
 
-  function syncCharacterIcons() {
+  function syncFilterPoolIcons() {
+    if (!characterPoolEl) return;
+
     characterPoolEl.querySelectorAll('.character-icon').forEach((btn) => {
       const id = btn.dataset.id;
       const inPool = active_pool.includes(id);
@@ -596,41 +848,66 @@
     });
   }
 
-  function toggleCharacter(id) {
+  function togglePoolItem(id) {
     if (active_pool.includes(id)) {
-      active_pool = active_pool.filter((c) => c !== id);
+      const index = active_pool.indexOf(id);
+      active_pool.splice(index, 1);
     } else {
       active_pool.push(id);
     }
-    syncCharacterIcons();
+    syncFilterPoolIcons();
     updateDrawButton();
   }
 
   function updateDrawButton() {
+    if (!drawBtn || !drawBtnHint) return;
+
     const isEmpty = active_pool.length === 0;
-    drawBtn.disabled = isEmpty;
+    drawBtn.disabled = isEmpty || isRolling;
     drawBtnHint.hidden = !isEmpty;
   }
 
-  /** 依角色篩選區狀態，取得目前被排除的角色名稱（與 .character-icon--excluded 同步） */
-  function getExcludedCharacterNames() {
-    return CHARACTERS
-      .filter((character) => !active_pool.includes(character.id))
-      .map((character) => getCharacterName(character.id));
+  function getExcludedPoolItemNames(poolKey = lastDrawPoolKey || currentPoolKey) {
+    const pool = POOLS[poolKey];
+    if (!pool) return [];
+
+    const enabledIds = poolFilterState[poolKey];
+    return pool.items
+      .filter((item) => !enabledIds.includes(item.id))
+      .map((item) => getPoolItemName(item.id, poolKey));
   }
 
-  function buildWebhookFooterText(excludedCharacters) {
-    if (excludedCharacters.length === 0) {
+  function buildWebhookFooterText(excludedItems) {
+    if (excludedItems.length === 0) {
       return '';
     }
     return currentLang === 'en'
-      ? `Excluded by destiny: ${excludedCharacters.join(', ')}`
-      : `已被命運排除：${excludedCharacters.join(', ')}`;
+      ? `Excluded by destiny: ${excludedItems.join(', ')}`
+      : `已被命運排除：${excludedItems.join(', ')}`;
   }
 
-  renderCharacterPool();
-  updateDrawButton();
-  updateLanguage(getInitialLanguage());
+  function initializePoolUI() {
+    initPoolTypeSwitcher();
+    renderFilterPool();
+    updateFilterPoolTitle();
+    updateDrawButton();
+    updateLanguage(getInitialLanguage());
+  }
+
+  async function bootstrapApp() {
+    try {
+      POOLS = await loadPoolsFromJson();
+      initializePoolState();
+      initializePoolUI();
+    } catch (err) {
+      console.error('獎池資料載入失敗：', err);
+      POOLS = { Character: { key: 'Character', items: [] } };
+      initializePoolState();
+      initializePoolUI();
+    }
+
+    initAssetPreloader();
+  }
 
   /* ── 畫面切換（Fade In / Out）──────────────────────────── */
 
@@ -740,7 +1017,6 @@
   const REVEAL_DELAY_MS = 1000;
   const VIEWPORT_WIDTH = 800;
 
-  let isRolling = false;
   let lastExileId = '';
   let scrollEndHandler = null;
   let scrollFallbackTimer = null;
@@ -962,8 +1238,37 @@
 
   applyGlobalVolume();
 
+  function getPoolItemWeight(id, poolKey = currentPoolKey) {
+    const item = getPoolItemById(id, poolKey);
+    const weight = item?.weight;
+    if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
+      return weight;
+    }
+    return 1;
+  }
+
   function pickRandomFromPool() {
-    return active_pool[Math.floor(Math.random() * active_pool.length)];
+    if (active_pool.length === 0) return undefined;
+
+    const weightedEntries = active_pool.map((id) => ({
+      id,
+      weight: getPoolItemWeight(id, currentPoolKey),
+    }));
+
+    const totalWeight = weightedEntries.reduce((sum, entry) => sum + entry.weight, 0);
+    if (totalWeight <= 0) {
+      return active_pool[Math.floor(Math.random() * active_pool.length)];
+    }
+
+    let threshold = Math.random() * totalWeight;
+    for (const entry of weightedEntries) {
+      threshold -= entry.weight;
+      if (threshold < 0) {
+        return entry.id;
+      }
+    }
+
+    return weightedEntries[weightedEntries.length - 1].id;
   }
 
   function buildTrackCards(winnerId) {
@@ -981,10 +1286,10 @@
     lotteryTrack.style.transform = 'translateX(0)';
 
     cards.forEach((rawId) => {
-      if (!isValidCharacterId(rawId)) return;
+      if (!isValidPoolItemId(rawId, lastDrawPoolKey)) return;
 
       const characterId = rawId;
-      const displayName = getCharacterName(characterId);
+      const displayName = getPoolItemName(characterId, lastDrawPoolKey);
 
       const item = document.createElement('div');
       item.className = 'lottery-item';
@@ -992,7 +1297,7 @@
 
       const img = document.createElement('img');
       img.className = 'lottery-item__img';
-      img.src = getTrackIconPath(characterId);
+      img.src = getPoolItemIconPath(characterId, lastDrawPoolKey);
       img.alt = displayName;
 
       const name = document.createElement('span');
@@ -1045,6 +1350,7 @@
     const itemCount = lotteryTrack.querySelectorAll('.lottery-item').length;
     if (itemCount === 0) {
       isRolling = false;
+      updatePoolSwitcherState();
       updateDrawButton();
       return;
     }
@@ -1055,6 +1361,7 @@
 
     if (!Number.isFinite(targetX)) {
       isRolling = false;
+      updatePoolSwitcherState();
       updateDrawButton();
       return;
     }
@@ -1122,9 +1429,9 @@
     lastExileId = exileId;
     winnerContentRevealed = false;
 
-    const charName = getCharacterName(winnerId);
+    const charName = getPoolItemName(winnerId, lastDrawPoolKey);
     winnerNameEl.textContent = charName;
-    winnerPortraitEl.src = getRolePortraitPath(winnerId);
+    winnerPortraitEl.src = getPoolItemPortraitPath(winnerId, lastDrawPoolKey);
     winnerPortraitEl.alt = charName;
     winnerExileEl.textContent = exileId;
 
@@ -1160,6 +1467,7 @@
     }
 
     isRolling = false;
+    updatePoolSwitcherState();
   }
 
   function revealWinnerContent(winnerId, exileId, charName) {
@@ -1249,7 +1557,10 @@
 
     unlockAudioOnInteraction();
 
+    lastDrawPoolKey = currentPoolKey;
+
     isRolling = true;
+    updatePoolSwitcherState();
     drawBtn.disabled = true;
     clearRevealForRedraw();
 
@@ -1282,6 +1593,7 @@
       setupScreen.classList.remove('screen--entering');
       setupScreen.classList.add('screen--active');
       isRolling = false;
+      updatePoolSwitcherState();
       updateDrawButton();
     }, SCREEN_TRANSITION_MS);
   }
@@ -1303,23 +1615,12 @@
 
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
-  const PRELOAD_CHARACTER_IDS = [
-    'druid',
-    'huntress',
-    'mercenary',
-    'monk',
-    'ranger',
-    'sorceress',
-    'warrior',
-    'witch',
-  ];
-
   function collectPreloadAssets() {
     const assets = [];
 
-    PRELOAD_CHARACTER_IDS.forEach((characterId) => {
-      assets.push({ type: 'image', src: getTrackIconPath(characterId) });
-      assets.push({ type: 'image', src: getRolePortraitPath(characterId) });
+    (POOLS.Character?.items || []).forEach((item) => {
+      assets.push({ type: 'image', src: getPoolItemIconPath(item.id, 'Character') });
+      assets.push({ type: 'image', src: getPoolItemPortraitPath(item.id, 'Character') });
     });
 
     [BGM_MAIN_SRC, BGM_END_SRC].forEach((src) => {
@@ -1569,7 +1870,7 @@
     portraitBgVideo.load();
   }
 
-  initAssetPreloader();
+  bootstrapApp();
 
   if (drawBtn) {
     drawBtn.addEventListener('click', startLottery);
@@ -1592,7 +1893,14 @@
     getGlobalVolume: () => globalVolume,
     getTrackIconPath,
     getRolePortraitPath,
-    CHARACTERS,
+    getPoolItemName,
+    getFilterPoolTitle,
+    getPoolTypeName,
+    getActivePoolDef,
+    get POOLS() { return POOLS; },
+    get CHARACTERS() { return POOLS.Character?.items || []; },
+    get currentPoolKey() { return currentPoolKey; },
+    LANGUAGE_MAPPING,
     translations,
   };
 })();

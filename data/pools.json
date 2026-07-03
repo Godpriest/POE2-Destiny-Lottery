@@ -1,0 +1,104 @@
+{
+  "Character": [
+    {
+      "id": "druid",
+      "name": { "zh-TW": "德魯伊", "en": "Druid" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_druid.webp",
+      "portraitPath": "img_character/character/druid.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844651403772045/druid.webp?ex=6a464fc7&is=6a44fe47&hm=29c22f6c4bef5f263e3430ff7da84df8d92fb3f89e33a4ca597a3c6e5c7b8097&"
+    },
+    {
+      "id": "huntress",
+      "name": { "zh-TW": "女獵人", "en": "Huntress" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_huntress.webp",
+      "portraitPath": "img_character/character/huntress.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844651940773999/huntress.webp?ex=6a464fc7&is=6a44fe47&hm=4f0935416792f0433b42238f79f804d8b7209d9da845d29e060f8f4b28e7a4fe&"
+    },
+    {
+      "id": "mercenary",
+      "name": { "zh-TW": "傭兵", "en": "Mercenary" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_mercenary.webp",
+      "portraitPath": "img_character/character/mercenary.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844652993417236/mercenary.webp?ex=6a464fc7&is=6a44fe47&hm=27073ff3fa86c663a21bafb80d1bf4f64341550943354a911814ab777529b9e3&"
+    },
+    {
+      "id": "monk",
+      "name": { "zh-TW": "武僧", "en": "Monk" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_monk.webp",
+      "portraitPath": "img_character/character/monk.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844653568299068/monk.webp?ex=6a464fc7&is=6a44fe47&hm=3bb6c77206cc2fddc905581a277ab3cb8587c467bb70a36cc0718b3f9ba7cc96&"
+    },
+    {
+      "id": "ranger",
+      "name": { "zh-TW": "遊俠", "en": "Ranger" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_ranger.webp",
+      "portraitPath": "img_character/character/ranger.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844654172143656/ranger.webp?ex=6a464fc8&is=6a44fe48&hm=0b5dedf8c63d9f78238c110cc65091be3a1d5a684e5a71d6374278de534bf066&"
+    },
+    {
+      "id": "sorceress",
+      "name": { "zh-TW": "女術者", "en": "Sorceress" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_sorceress.webp",
+      "portraitPath": "img_character/character/sorceress.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844654885048352/sorceress.webp?ex=6a464fc8&is=6a44fe48&hm=0fc8720b6586d61db3bb29e72e53ee8fb8667cb82503e8fa266ba695723f6ead&"
+    },
+    {
+      "id": "warrior",
+      "name": { "zh-TW": "戰士", "en": "Warrior" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_warrior.webp",
+      "portraitPath": "img_character/character/warrior.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844655484960828/warrior.webp?ex=6a464fc8&is=6a44fe48&hm=fdb46649741079f4ea1e7bc97730f1ff6f2b59de27094c351a20e23051846445&"
+    },
+    {
+      "id": "witch",
+      "name": { "zh-TW": "女巫", "en": "Witch" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_witch.webp",
+      "portraitPath": "img_character/character/witch.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844655988146246/witch.webp?ex=6a464fc8&is=6a44fe48&hm=a8e02db9b3b5059e7f245a1d6d1a58e5adb62e05e080170e26821cbbf054ea48&"
+    }
+  ],
+  "Ascendancy": [
+    {
+      "id": "dummy_asc_shaman",
+      "name": { "zh-TW": "測試昇華 A", "en": "Test Ascendancy A" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_druid.webp",
+      "portraitPath": "img_character/character/druid.webp",
+      "discordImage": ""
+    },
+    {
+      "id": "dummy_asc_oracle",
+      "name": { "zh-TW": "測試昇華 B", "en": "Test Ascendancy B" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_witch.webp",
+      "portraitPath": "img_character/character/witch.webp",
+      "discordImage": ""
+    }
+  ],
+  "Weapon": [
+    {
+      "id": "dummy_weapon_sword",
+      "name": { "zh-TW": "測試武器 A", "en": "Test Weapon A" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_warrior.webp",
+      "portraitPath": "img_character/character/warrior.webp",
+      "discordImage": ""
+    },
+    {
+      "id": "dummy_weapon_bow",
+      "name": { "zh-TW": "測試武器 B", "en": "Test Weapon B" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_ranger.webp",
+      "portraitPath": "img_character/character/ranger.webp",
+      "discordImage": ""
+    }
+  ]
+}

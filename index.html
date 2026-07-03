@@ -130,7 +130,7 @@
             揭露命運
           </button>
           <p id="draw-btn-hint" class="draw-btn-hint" data-i18n="poolEmptyHint" hidden>
-            獎池內至少要有一隻角色
+            獎池內至少要有一項
           </p>
         </div>
 
@@ -158,15 +158,41 @@
 
       </div>
 
+      <div class="pool-type-switcher" id="pool-type-switcher" role="tablist" aria-label="Pool type">
+        <div class="pool-type-switcher__track">
+          <span class="pool-type-switcher__indicator" aria-hidden="true"></span>
+          <button
+            type="button"
+            role="tab"
+            class="pool-type-switcher__btn pool-type-switcher__btn--active"
+            data-pool="Character"
+            aria-selected="true"
+          >Character</button>
+          <button
+            type="button"
+            role="tab"
+            class="pool-type-switcher__btn"
+            data-pool="Ascendancy"
+            aria-selected="false"
+          >Ascendancy</button>
+          <button
+            type="button"
+            role="tab"
+            class="pool-type-switcher__btn"
+            data-pool="Weapon"
+            aria-selected="false"
+          >Weapon</button>
+        </div>
+      </div>
+
       <div class="filter-pool">
-        <h2 class="filter-pool__title" data-i18n="filterPoolTitle">角色過濾池</h2>
+        <h2 class="filter-pool__title" id="filter-pool-title">角色過濾器</h2>
         <div class="filter-pool__content" id="filter-pool-content">
           <div
             class="character-pool"
             id="character-pool"
             role="group"
-            data-i18n-aria="filterPoolAria"
-            aria-label="角色過濾池"
+            aria-label="角色過濾器"
           >
             <!-- 由 JS 動態生成，每排 4 格自動換行 -->
           </div>
