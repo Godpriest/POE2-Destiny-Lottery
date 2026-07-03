@@ -527,7 +527,7 @@
 
   /* ── 獎池定義與過濾池（資料來源：data/pools.json）────────── */
 
-  const POOLS_JSON_URL = 'data/pools.json';
+  const POOLS_JSON_URL = './data/pools.json';
 
   /** @type {Record<string, { key: string, items: Array<{ id: string, name?: object, iconPath?: string, portraitPath?: string }> }>} */
   let POOLS = {};
