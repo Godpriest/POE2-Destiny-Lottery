@@ -1,33 +1,203 @@
-🎰 PoE2 Destiny Lottery - 專案架構與開發設計紀錄本專案是一個基於 Path of Exile 2 (PoE2) 暗黑風格打造的動態抽獎與過濾工具。前端採用純 HTML/CSS/JavaScript 開發，後端結合 CDN 圖片加速與 Discord Webhook 自動化推播機制。🛠️ 1. 系統整體架構 (System Architecture)Plaintext[ 靜態資源 (CDN) ] ──> Backblaze B2 (儲存原圖) ──> Cloudflare Worker / CDN (加速/代理)
-                                                                 │
-[ 資料層 (Data) ]    ──> data/pools.json (動態獎池、權重、中英文 mapping)
-                                                                 │
-[ 前端介面 (UI) ]   ──> index.html + style.css + js/main.js (渲染與動畫)
-                                                                 │
-[ 自動化 (Webhook)] ──> 抽獎結果 ──> Discord Webhook (自動發送中獎卡片)
-🖼️ 2. 靜態資源與圖床配置 (Image Asset Hosting)為了避免將大量高解析度圖檔直接放在 GitHub Repository 導致載入緩慢或超出容量限制，本專案採用 B2 + Cloudflare CDN 方案：Backblaze B2：作為底層圖床，存放 img_character/ 底下的所有角色小圖 (icon) 與大圖 (character 立繪)。Cloudflare CDN / Proxy：綁定自訂域名/代理，為圖片提供免費加速與快取，大幅縮短前端載入延遲。路徑慣例化 (Convention over Configuration)：角色圖示預設路徑：img_character/icon/icon_{id}.webp角色立繪預設路徑：img_character/character/{id}.webp📂 3. 資料與邏輯分離 (Data Driven Architecture)所有的獎池資料皆抽離至 data/pools.json 中，達成「新增素材免改程式碼」的目標。📄 data/pools.json 結構範例：JSON{
-  "Character": [
-    {
-      "id": "sorceress",
-      "name": {
-        "zh-TW": "女術士",
-        "en": "Sorceress"
-      },
-      "weight": 1,
-      "iconPath": "img_character/icon/icon_sorceress.webp",
-      "portraitPath": "img_character/character/sorceress.webp",
-      "discordImage": "https://cdn.discordapp.com/attachments/..."
-    }
-  ],
-  "Ascendancy": [ ... ],
-  "Weapon": [ ... ]
-}
-🔑 關鍵欄位說明：id：項目的唯一識別碼（全小寫 + 底線）。name：支援多語言對照（目前包含 zh-TW 與 en）。weight：抽獎權重（預設為 1）。iconPath / portraitPath：自訂圖片相對路徑（若留空則自動代入慣例路徑）。discordImage：中獎時推播至 Discord 的高畫質圖案連結（具備防呆機制，若未填寫則只發送純文字訊息）。⚙️ 4. 核心機制與技術優化🎲 A. 權重抽獎引擎 (Weighted Random Selection)抽獎機制並非簡單的 Math.random() 索引隨機，而是採用「權重累加法」：算出一池內所有項目的 weight 加總值 $S$。在 $0 \sim S$ 之間產生一個隨機浮點數 $R$。依序累加項目的權重，當累加值大於等於 $R$ 時，即選定該項目。效益：未來若要加入「極稀有/傳奇」物品，只需將該項目的 weight 設為 0.1 即可，不需破壞陣列結構。⚡ B. 全自動動態預載機制 (Dynamic Image Preloading)為了防止玩家在點擊抽獎或切換獎池時出現圖片白塊與閃爍：當 main.js 透過 fetch() 成功讀取 pools.json 後，會立刻啟動 collectPoolImageAssets()。自動遍歷 Character、Ascendancy、Weapon 所有獎池，提取 iconPath 與 portraitPath 進行 URL 去重。建立 Image() 物件於背景完成非同步下載，並在 Console 輸出預載統計與異常 Warning。🌐 C. 多語言與 UI 動態渲染 (I18n & Filter Mapping)透過 TRANSLATIONS 物件映射表，在切換獎池按鈕時，自動觸發 updateFilterTitle()。例如切換至 Ascendancy 時，過濾器標題會動態由 HTML 渲染為「昇華過濾器」，達到完全的中英邏輯分離。🚀 5. GitHub Pages 部署防呆與注意事項Jekyll 衝突處理 (.nojekyll)：GitHub Pages 預設會使用 Jekyll 編譯網站，並忽略底線開頭或特定資料夾（如 data/）。解決方案：在專案根目錄放一個完全空白的 .nojekyll 檔案，告知 GitHub 採用純靜態 HTML 發布。CORS 本地測試限制：瀏覽器在 file:// 本地協議下會阻擋 JavaScript 發送 fetch() 讀取本地 pools.json。解決方案：本地開發時請務必使用 VS Code / Cursor 的 Live Server 擴充套件啟動（[http://127.0.0.1:5500](http://127.0.0.1:5500)）；正式部署上傳至 GitHub Pages 後 CORS 限制將自動解除。📝 6. 未來新增素材 SOP (Workflow for Adding New Items)日後若有全新角色、昇華或武器要加入，只需執行以下三步驟：上傳圖檔：將角色小圖與立繪上傳至 B2 儲存庫對應資料夾。填寫 JSON：在 data/pools.json 對應的陣列中新增一筆資料：JSON{
-  "id": "your_item_id",
-  "name": { "zh-TW": "中文名稱", "en": "English Name" },
+# 🎰 PoE2 Destiny Lottery
+
+Path of Exile 2 風格的命運抽獎與過濾工具。  
+純前端靜態網站，支援角色（Character）／昇華（Ascendancy）／武器（Weapon）三獎池、權重抽獎、Discord Webhook 推播，以及資料驅動的素材擴充。
+
+---
+
+## 1. 系統整體架構
+
+本專案採「純前端 + 外部服務」架構：
+
+| 層級 | 技術／位置 | 說明 |
+|------|------------|------|
+| 靜態資源 CDN | Backblaze B2 → Cloudflare Pages 代理 | 圖片、影片、音效加速與代理 |
+| 資料層 | `data/pools.json` | 獎池內容、權重、中英名稱、圖檔路徑、Discord 圖 |
+| 前端 UI | `index.html` / `css/style.css` / `js/main.js` | 畫面、過濾池、抽獎動畫、語系 |
+| 自動化推播 | Discord Webhook | 抽獎結果以 Embed 卡片送出 |
+
+**資產基礎網址（Base URL）：**
+
+```text
+https://poe2-b2-proxy.pages.dev
+```
+
+程式透過 `ASSET_BASE_URL` 動態拼接相對路徑，例如：
+
+```text
+img_character/icon/icon_druid.webp
+→ https://poe2-b2-proxy.pages.dev/img_character/icon/icon_druid.webp
+```
+
+---
+
+## 2. 靜態資源與圖床配置
+
+為避免 GitHub 倉庫承載大量高解析度圖檔，大型素材放在 **Backblaze B2**，再經 **Cloudflare** 加速。
+
+### 路徑慣例（Convention over Configuration）
+
+若 JSON 未填 `iconPath` / `portraitPath`，系統會自動套用：
+
+| 類型 | 相對路徑規則 |
+|------|----------------|
+| 圖示（過濾池／軌道） | `img_character/icon/icon_{id}.webp` |
+| 立繪（結算畫面） | `img_character/character/{id}.webp` |
+
+其他目錄對應：
+
+| 本地／邏輯目錄 | CDN 路徑 |
+|----------------|----------|
+| `webm/` | `${ASSET_BASE_URL}/webm/` |
+| `bgm/` | `${ASSET_BASE_URL}/bgm/` |
+| `img/icon`（舊） | `${ASSET_BASE_URL}/img_character/icon/` |
+| `img/role`（舊） | `${ASSET_BASE_URL}/img_character/character/` |
+
+`favicon.ico` 維持放在專案根目錄（本地），不上傳 B2。
+
+---
+
+## 3. 資料與邏輯分離（資料驅動）
+
+所有獎池資訊集中在 **`data/pools.json`**，目標是：
+
+> **新增素材時不必改程式碼**，只要更新 JSON 並重新整理頁面。
+
+### 檔案結構
+
+```text
+POE2 Destiny Lottery/
+├── index.html
+├── .nojekyll
+├── favicon.ico
+├── css/
+│   └── style.css
+├── js/
+│   └── main.js
+└── data/
+    └── pools.json
+```
+
+### 關鍵欄位說明
+
+| 欄位 | 說明 |
+|------|------|
+| `id` | 唯一識別碼（建議小寫 + 底線，例如 `storm_weaver`） |
+| `name` | 多語系名稱，目前支援 `zh-TW`、`en` |
+| `weight` | 抽獎權重，預設 `1`（數字越大越容易抽中） |
+| `iconPath` | 圖示相對路徑；可省略以走慣例路徑 |
+| `portraitPath` | 立繪相對路徑；可省略以走慣例路徑 |
+| `discordImage` | Discord Embed 大圖完整 URL；空字串或不填則只送純文字 |
+
+### 新增項目範本
+
+```json
+{
+  "id": "your_unique_id",
+  "name": {
+    "zh-TW": "中文名稱",
+    "en": "English Name"
+  },
   "weight": 1,
-  "iconPath": "img_character/icon/icon_your_item_id.webp",
-  "portraitPath": "img_character/character/your_item_id.webp",
-  "discordImage": "https://..."
+  "iconPath": "img_character/icon/icon_your_unique_id.webp",
+  "portraitPath": "img_character/character/your_unique_id.webp",
+  "discordImage": "https://cdn.discordapp.com/attachments/..."
 }
-Commit & Push：推送到 GitHub，網頁重新整理後即會自動載入新卡片、自動加入過濾器並完成圖片預載！
+```
+
+將上述物件加入 `Character` / `Ascendancy` / `Weapon` 對應陣列即可。
+
+---
+
+## 4. 核心機制與技術優化
+
+### A. 權重抽獎引擎（Weighted Random Selection）
+
+`pickRandomFromPool()` 使用**權重累加法**，只對過濾池內仍啟用的項目（`active_pool`）抽選：
+
+1. 加總所有啟用項目的 `weight`，得到總權重 \(S\)
+2. 產生隨機數 \(R \in [0, S)\)
+3. 依序累減各項權重，第一個使累積值「跨越」\(R\) 的項目即為結果
+
+**優點：** 可做出極稀有項目（例如 `weight: 0.1`），不必改動陣列結構。  
+當所有項目 `weight: 1` 時，行為等同均分機率。
+
+### B. 全自動動態預載機制
+
+1. `main.js` 成功 `fetch('./data/pools.json')` 後，才啟動預載
+2. `collectPoolImageAssets()` 走訪 **Character / Ascendancy / Weapon** 全部項目
+3. 提取並**去重**所有 `iconPath`、`portraitPath`
+4. 以 `new Image()` 非同步下載；Console 會輸出：
+   - 成功：`已成功預載 N 張圖片資源`
+   - 失敗：Warning（標示池別、id、路徑），**不中斷**頁面運作
+
+因此只要 JSON 新增一筆（並上傳對應圖檔），重新整理後就會自動進入預載佇列與過濾池 UI。
+
+### C. 獎池切換與過濾
+
+- 上方 Segmented Control：`Character` / `Ascendancy` / `Weapon`
+- 各池過濾狀態獨立保存（`poolFilterState`）
+- 抽獎進行中（`isRolling`）會鎖定切換，避免狀態錯亂
+- 過濾池標題依語系與當前池動態顯示（例如「角色過濾器」／`Character Filter`）
+
+---
+
+## 5. GitHub Pages 部署防呆與注意事項
+
+### `.nojekyll`
+
+專案根目錄需有**空白**的 `.nojekyll` 檔案，用來停用 GitHub Pages 預設的 Jekyll 編譯，避免 `data/` 等資料夾被忽略或建置失敗。
+
+### 相對路徑
+
+`pools.json` 以相對路徑載入：
+
+```javascript
+const POOLS_JSON_URL = './data/pools.json';
+```
+
+請勿改成以 `/` 開頭的絕對站內路徑，以免部署在子路徑（`username.github.io/repo-name/`）時抓不到檔案。
+
+### 本地測試
+
+請使用 VS Code / Cursor 的 **Live Server**（例如 `http://127.0.0.1:5500`）開啟，**不要**直接用 `file://` 開 `index.html`。  
+本機 `file://` 下 `fetch` JSON 常因 CORS／安全限制失敗；部署到 GitHub Pages 後則可正常運作。
+
+---
+
+## 6. 未來新增素材 SOP
+
+1. **上傳圖檔**  
+   將圖示與立繪上傳到 B2 對應資料夾（或依你自訂的相對路徑）。
+
+2. **填寫 JSON**  
+   在 `data/pools.json` 對應獎池陣列新增一筆（參考上方範本）。
+
+3. **Commit & Push**  
+   推送到 GitHub 後，使用者重新整理網頁即可：
+   - 自動出現新卡片／過濾選項
+   - 自動納入圖片預載
+   - 若有填 `discordImage`，Webhook 會帶大圖
+
+---
+
+## 7. 主要功能一覽
+
+- 三獎池切換（Character / Ascendancy / Weapon）
+- 過濾池勾選／排除
+- CS:GO 風格橫向滾動抽獎 + 鼓聲音效
+- 繁中／英文語系切換（含過濾池標題與按鈕文字）
+- Discord Webhook Embed 推播（可含大圖與排除名單 footer）
+- Webhook 專屬分享連結（`?w=` Base64）
+- 全域音量控制、資源預載畫面（可跳過）
+
+---
+
+## 授權與聲明
+
+本專案為粉絲向工具，與 Grinding Gear Games 無官方隸屬關係。  
+背景音樂標示為 AI Music generated by Suno（頁面 footer）。
+
+---
+
+祝你的流亡者在瓦爾克拉斯抽到好命運。
