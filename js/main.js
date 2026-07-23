@@ -1615,12 +1615,53 @@
 
   /* ── 資源預載畫面 ───────────────────────────────────────── */
 
+  /**
+   * 走訪 POOLS 內所有獎池項目，收集 iconPath / portraitPath。
+   * 路徑已在 normalizePoolItem 補上預設慣例並轉 CDN；此處再兜底一次。
+   * 以 URL 去重，避免 Ascendancy/Weapon 假資料共用同一張圖時重複預載。
+   */
+  function collectPoolImageAssets() {
+    const assets = [];
+    const seenSrc = new Set();
+
+    Object.keys(POOLS).forEach((poolKey) => {
+      const items = POOLS[poolKey]?.items || [];
+
+      items.forEach((item) => {
+        const iconSrc = item.iconPath || getPoolItemIconPath(item.id, poolKey);
+        const portraitSrc = item.portraitPath || getPoolItemPortraitPath(item.id, poolKey);
+
+        [
+          { src: iconSrc, field: 'iconPath' },
+          { src: portraitSrc, field: 'portraitPath' },
+        ].forEach(({ src, field }) => {
+          if (!src) {
+            console.warn(
+              `[預載] ${poolKey}/${item.id} 缺少 ${field}，已略過。`,
+            );
+            return;
+          }
+          if (seenSrc.has(src)) return;
+          seenSrc.add(src);
+          assets.push({
+            type: 'image',
+            src,
+            poolKey,
+            itemId: item.id,
+            field,
+          });
+        });
+      });
+    });
+
+    return assets;
+  }
+
   function collectPreloadAssets() {
     const assets = [];
 
-    (POOLS.Character?.items || []).forEach((item) => {
-      assets.push({ type: 'image', src: getPoolItemIconPath(item.id, 'Character') });
-      assets.push({ type: 'image', src: getPoolItemPortraitPath(item.id, 'Character') });
+    collectPoolImageAssets().forEach((imageAsset) => {
+      assets.push(imageAsset);
     });
 
     [BGM_MAIN_SRC, BGM_END_SRC].forEach((src) => {
@@ -1644,12 +1685,28 @@
     return assets;
   }
 
-  function preloadImageAsset(src) {
+  function preloadImageAsset(src, meta = {}) {
     return new Promise((resolve) => {
+      if (!src) {
+        console.warn('[預載] 圖片路徑為空，已略過。', meta);
+        resolve(false);
+        return;
+      }
+
       const img = new Image();
-      const finish = () => resolve();
-      img.onload = finish;
-      img.onerror = finish;
+
+      img.onload = () => {
+        resolve(true);
+      };
+
+      img.onerror = () => {
+        const label = meta.poolKey && meta.itemId
+          ? `${meta.poolKey}/${meta.itemId} (${meta.field || 'image'})`
+          : '未知項目';
+        console.warn(`[預載] 圖片載入失敗：${label} → ${src}`);
+        resolve(false);
+      };
+
       img.src = src;
     });
   }
@@ -1718,7 +1775,11 @@
   function preloadAsset(asset) {
     try {
       if (asset.type === 'image') {
-        return preloadImageAsset(asset.src);
+        return preloadImageAsset(asset.src, {
+          poolKey: asset.poolKey,
+          itemId: asset.itemId,
+          field: asset.field,
+        });
       }
       if (asset.type === 'audio') {
         return preloadAudioAsset(asset.src);
@@ -1734,14 +1795,6 @@
     }
 
     return Promise.resolve();
-  }
-
-  function safePreloadAsset(asset) {
-    return Promise.resolve()
-      .then(() => preloadAsset(asset))
-      .catch((err) => {
-        console.warn('資源預載失敗：', asset, err);
-      });
   }
 
   function initAssetPreloader() {
@@ -1763,8 +1816,19 @@
     }
 
     const totalAssets = assets.length;
+    const imageAssets = assets.filter((asset) => asset.type === 'image');
+    const totalImageAssets = imageAssets.length;
     let completedAssets = 0;
+    let successfulImageCount = 0;
+    let completedImageCount = 0;
+    let imageSummaryLogged = false;
     let loadingDismissed = false;
+
+    function logImagePreloadSummary() {
+      if (imageSummaryLogged || completedImageCount < totalImageAssets) return;
+      imageSummaryLogged = true;
+      console.log(`已成功預載 ${successfulImageCount} 張圖片資源`);
+    }
 
     function updatePreloadProgress() {
       const percent = totalAssets === 0
@@ -1804,6 +1868,7 @@
       completedAssets += 1;
       updatePreloadProgress();
       if (completedAssets >= totalAssets) {
+        logImagePreloadSummary();
         dismissLoadingScreen(true);
       }
     }
@@ -1811,6 +1876,7 @@
     updatePreloadProgress();
 
     if (totalAssets === 0) {
+      console.log('已成功預載 0 張圖片資源');
       dismissLoadingScreen(true);
       return;
     }
@@ -1821,12 +1887,29 @@
       }, 3000);
 
       skipLoadingBtn.addEventListener('click', () => {
+        logImagePreloadSummary();
         dismissLoadingScreen(false);
       });
     }
 
     assets.forEach((asset) => {
-      safePreloadAsset(asset).finally(markAssetLoaded);
+      Promise.resolve()
+        .then(() => preloadAsset(asset))
+        .then((result) => {
+          if (asset.type === 'image') {
+            if (result === true) successfulImageCount += 1;
+            completedImageCount += 1;
+            logImagePreloadSummary();
+          }
+        })
+        .catch((err) => {
+          console.warn('資源預載失敗：', asset, err);
+          if (asset.type === 'image') {
+            completedImageCount += 1;
+            logImagePreloadSummary();
+          }
+        })
+        .finally(markAssetLoaded);
     });
   }
 
