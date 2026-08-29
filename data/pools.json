@@ -63,6 +63,14 @@
       "iconPath": "img_character/icon/icon_witch.webp",
       "portraitPath": "img_character/character/witch.webp",
       "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1521844655988146246/witch.webp?ex=6a464fc8&is=6a44fe48&hm=a8e02db9b3b5059e7f245a1d6d1a58e5adb62e05e080170e26821cbbf054ea48&"
+    },
+    {
+      "id": "duelist",
+      "name": { "zh-TW": "決鬥者(1.0)", "en": "Duelist(1.0)" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_duelist.webp",
+      "portraitPath": "img_character/character/duelist.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1543279464371322950/duelist.webp?ex=6a944a81&is=6a92f901&hm=a6ebfeae9e9802aba9dce5276670ad387e2612129cb912f0cf35b2ba737f1813&"
     }
   ],
   "Ascendancy": [
