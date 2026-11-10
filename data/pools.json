@@ -66,11 +66,19 @@
     },
     {
       "id": "duelist",
-      "name": { "zh-TW": "決鬥者(1.0)", "en": "Duelist(1.0)" },
+      "name": { "zh-TW": "決鬥者", "en": "Duelist" },
       "weight": 1,
       "iconPath": "img_character/icon/icon_duelist.webp",
       "portraitPath": "img_character/character/duelist.webp",
       "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1543279464371322950/duelist.webp?ex=6a944a81&is=6a92f901&hm=a6ebfeae9e9802aba9dce5276670ad387e2612129cb912f0cf35b2ba737f1813&"
+    },
+    {
+      "id": "shadow",
+      "name": { "zh-TW": "暗影刺客", "en": "Shadow" },
+      "weight": 1,
+      "iconPath": "img_character/icon/icon_shadow.webp",
+      "portraitPath": "img_character/character/shadow.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1569572221796618340/shadow.webp?ex=6af3f18a&is=6af2a00a&hm=91d3c1d41e41f69f438432c01909bafbf9e3071d3e129b98b888c8d1d5fd7fba&"
     }
   ],
   "Ascendancy": [
