@@ -83,20 +83,28 @@
   ],
   "Ascendancy": [
     {
-      "id": "dummy_asc_shaman",
-      "name": { "zh-TW": "測試昇華 A", "en": "Test Ascendancy A" },
+      "id": "left",
+      "name": { "zh-TW": "昇華_左", "en": "Ascendancy_Left" },
       "weight": 1,
-      "iconPath": "img_character/icon/icon_druid.webp",
-      "portraitPath": "img_character/character/druid.webp",
-      "discordImage": ""
+      "iconPath": "img_ascendancy/icon/icon_ieft.webp",
+      "portraitPath": "img_ascendancy/ascendancy/ieft.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1569591492811563018/left.webp?ex=6af4037d&is=6af2b1fd&hm=7f58e0ed16768d80777f8fc078846a12f06c2a5d6c8fda140447267b75f837a5&"
     },
     {
-      "id": "dummy_asc_oracle",
-      "name": { "zh-TW": "測試昇華 B", "en": "Test Ascendancy B" },
+      "id": "mid",
+      "name": { "zh-TW": "昇華_中", "en": "Ascendancy_Mid" },
       "weight": 1,
-      "iconPath": "img_character/icon/icon_witch.webp",
-      "portraitPath": "img_character/character/witch.webp",
-      "discordImage": ""
+      "iconPath": "img_ascendancy/icon/icon_mid.webp",
+      "portraitPath": "img_ascendancy/ascendancy/mid.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1569591493226930267/mid.webp?ex=6af4037d&is=6af2b1fd&hm=a0ac1d4eb3e8028fff4251d54066d081d521da65ed9b6cc5e60f744a8b14f503&"
+    },
+    {
+      "id": "right",
+      "name": { "zh-TW": "昇華_右", "en": "Ascendancy_Right" },
+      "weight": 1,
+      "iconPath": "img_ascendancy/icon/icon_right.webp",
+      "portraitPath": "img_ascendancy/ascendancy/right.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1569591493641900053/right.webp?ex=6af4037d&is=6af2b1fd&hm=5447c35c031bed3202d92a9da2498ab86b4359b15c52f26b7d219cdac9195751&"
     }
   ],
   "Weapon": [
