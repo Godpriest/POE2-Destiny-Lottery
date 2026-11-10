@@ -86,8 +86,8 @@
       "id": "left",
       "name": { "zh-TW": "昇華_左", "en": "Ascendancy_Left" },
       "weight": 1,
-      "iconPath": "img_ascendancy/icon/icon_ieft.webp",
-      "portraitPath": "img_ascendancy/ascendancy/ieft.webp",
+      "iconPath": "img_ascendancy/icon/icon_left.webp",
+      "portraitPath": "img_ascendancy/ascendancy/left.webp",
       "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1569591492811563018/left.webp?ex=6af4037d&is=6af2b1fd&hm=7f58e0ed16768d80777f8fc078846a12f06c2a5d6c8fda140447267b75f837a5&"
     },
     {
