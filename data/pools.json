@@ -109,20 +109,52 @@
   ],
   "Weapon": [
     {
-      "id": "dummy_weapon_sword",
-      "name": { "zh-TW": "測試武器 A", "en": "Test Weapon A" },
+      "id": "weapon_dex",
+      "name": { "zh-TW": "武器屬性:敏捷", "en": "Weapon Attributes:Dex" },
       "weight": 1,
-      "iconPath": "img_character/icon/icon_warrior.webp",
-      "portraitPath": "img_character/character/warrior.webp",
-      "discordImage": ""
+      "iconPath": "img_attributes/icon/icon_dex.webp",
+      "portraitPath": "img_attributes/attributes/dex.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026912175358022/dex.webp?ex=6af59901&is=6af44781&hm=90032e7820ee93e37876292529e9be54b7ed8e5d8b6e34f08b92546cd819172c&"
     },
     {
-      "id": "dummy_weapon_bow",
-      "name": { "zh-TW": "測試武器 B", "en": "Test Weapon B" },
+      "id": "weapon_dex_int",
+      "name": { "zh-TW": "武器屬性:敏捷&智慧", "en": "Weapon Attributes:Dex/Int" },
       "weight": 1,
-      "iconPath": "img_character/icon/icon_ranger.webp",
-      "portraitPath": "img_character/character/ranger.webp",
-      "discordImage": ""
+      "iconPath": "img_attributes/icon/icon_dex_int.webp",
+      "portraitPath": "img_attributes/attributes/dex_int.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026912766631966/dex_int.webp?ex=6af59901&is=6af44781&hm=838143787d41980954c19c92bf0432c7bd60edc757a5a212042c6d0a2bd1ea31&"
+    },
+    {
+      "id": "weapon_int",
+      "name": { "zh-TW": "武器屬性:智慧", "en": "Weapon Attributes:Int" },
+      "weight": 1,
+      "iconPath": "img_attributes/icon/icon_int.webp",
+      "portraitPath": "img_attributes/attributes/int.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026913261555752/int.webp?ex=6af59901&is=6af44781&hm=4805a08dba65c8f45110434ad70a4d2c431ed55096cf450401319ba47ac10602&"
+    },
+    {
+      "id": "weapon_int_str",
+      "name": { "zh-TW": "武器屬性:智慧&力量", "en": "Weapon Attributes:Int/Str" },
+      "weight": 1,
+      "iconPath": "img_attributes/icon/icon_int_str.webp",
+      "portraitPath": "img_attributes/attributes/int_str.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026913928577025/int_str.webp?ex=6af59901&is=6af44781&hm=31c46b08a864f828689411971ca3db2856d2e20b6834493a0257936f39b61769&"
+    },
+    {
+      "id": "weapon_str",
+      "name": { "zh-TW": "武器屬性:力量", "en": "Weapon Attributes:Str" },
+      "weight": 1,
+      "iconPath": "img_attributes/icon/icon_str.webp",
+      "portraitPath": "img_attributes/attributes/str.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026914586828821/str.webp?ex=6af59902&is=6af44782&hm=7eed7b70db6ce8c998bdf7d0071545bbd2afd5472883c1d219bca22c4c08f787&"
+    },
+    {
+      "id": "weapon_str_dex",
+      "name": { "zh-TW": "武器屬性:力量&敏捷", "en": "Weapon Attributes:Str/Dex" },
+      "weight": 1,
+      "iconPath": "img_attributes/icon/icon_str_dex.webp",
+      "portraitPath": "img_attributes/attributes/str_dex.webp",
+      "discordImage": "https://cdn.discordapp.com/attachments/1521843690899767446/1570026915161710702/str_dex.webp?ex=6af59902&is=6af44782&hm=8a5be077a0d8eb01773289615beeb787a56b92a81b61079afe1d1ba0f1df26ba&"
     }
   ]
 }
